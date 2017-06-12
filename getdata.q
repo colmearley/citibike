@@ -48,6 +48,7 @@ dismap:exec distance[;0] by station1,station2 from r1
 
 r2:`station_id xasc ([]station_id:-1 -2i;lat:places[`home`work][;0]; lon:places[`home`work][;1]),select station_id,lat,lon from r
 r3:update loc1:(`station_id xkey r2)[([]station_id:station1)][;`lat`lon],loc2:(`station_id xkey r2)[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from r2
+r3:update distance:hav . flip (loc1,'loc2) from r3
 r3:update loc1:(`station_id xkey r2)[([]station_id:station1)][;`lat`lon],loc2:(`station_id xkey r2)[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from r2
 
 `walkdistance xasc raze { raze {[x;y] enlist `start`station1`station2`end`walkdistance`bikedistance!(x`station1;x`station2;y`station2;x`station1;x[`distance]+exec first distance from r3 where station1=y[`station2],station2=x[`station1];y[`distance])}[x]'[select from r3 where station1=x[`station2],station2 in exec station_id from r where points_en=`return2]}'[select from r3 where station1=-1,station2 in (exec station_id from r where points_en=`take2)]
