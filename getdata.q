@@ -42,7 +42,7 @@ getdistance . string value exec first lat,first lon, last lat, last lon from r'[
 / matrix of distance between each station
 r:getstationinfostatuspoints[]
 r1:update loc1:r[([]station_id:station1)][;`lat`lon],loc2:r[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from r
-r1:update distance:hav .' (loc1,'loc2) from r1
+r1:update distance:hav . flip (loc1,'loc2) from r1
 dismap:exec distance[;0] by station1,station2 from r1
 
 
