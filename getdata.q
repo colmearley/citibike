@@ -35,6 +35,15 @@ places:enlist[`]!enlist[2#0nf]
 places[`work]:40.7526 -73.9902
 places[`home]:40.7092 -74.0133
 
+get_routes:{[start;end]
+  station_info:getstationinfostatuspoints[];
+  station_info:update start_distance:hav . flip (lat,'lon) cross enlist start,end_distance:hav . flip (lat,'lon) cross enlist end from station_info;
+  tbl:update loc1:station_info[([]station_id:station1)][;`lat`lon],loc2:station_info[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from station_info;
+  tbl:update startdis:hav[start 0;start 1] . flip loc1,bikedis:hav . flip (loc1,'loc2),enddis:hav[end 0;end 1] . flip loc2 from tbl;
+  t1:`points xdesc `walkdis xasc update points:abs[min[(0;0^.Q.fu[station_info;([]station_id:station1)][;`points])]]+max[(0;0^.Q.fu[station_info;([]station_id:station2)][;`points])],walkdis:startdis+enddis from tbl;
+  update name1:station_info[([]station_id:station1)][;`name],name2:station_info[([]station_id:station2)][;`name] from select from t1 where walkdis=(min;walkdis) fby points
+ } 
+
 / 
 example walking from south end av @ liberty st to 8th av @ 33rd st is 3.226167 miles
 getdistance . string value exec first lat,first lon, last lat, last lon from r'[3002 490]
