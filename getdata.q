@@ -1,6 +1,6 @@
 curl_raw:{.j.k first system"curl -sS ",x}
 curl:{curl_raw[x]`data}
-atan2:{u:atan[y%x]; ?[x<0.0;?[u>=0.0;u-22%7;u+22%7];u]}
+atan2:{[y;x] u:atan[y%x]; ?[x<0.0;?[u>=0.0;u-22%7;u+22%7];u]}
 
 posixqtime:{`datetime$1970.01.01D+1000000000*`long$x}
 genurl:"https://gbfs.citibikenyc.com/gbfs/gbfs.json"
@@ -20,10 +20,11 @@ points_map:0N -2 -1 0 1 2i!`none`take2`take1`none`return1`return2
 googleapikey:"AIzaSyA83JE_NNqTl1WXB2tKI3tzNbR0UlTx7Mc"
 
 getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",googleapikey}
+getgoogleuiurl:{[lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&travelmode=walking"}
 getdistance:{[url] sum raze[.j.k[raze system"curl -sS '",url,"'"][`routes][`legs][;`distance]]`value}
 
 safeString:{$[type[x] in 0 98 99h;.z.s each x;type[x]=10h;x;string x]}
-htmltable:{"<table>",({"<tr>",raze[{"<th>",safeString[x],"</th>"}each cols x],"</tr>"}[x],raze {"<tr>",raze[{"<td>",safeString[x],"</td>"}each x],"</tr>"}each x),"</table>"}
+htmltable:{"<table>\n",({"<tr>\n",raze[{"<th>",safeString[x],"</th>\n"}each cols x],"</tr>\n"}[x],raze {"<tr>\n",raze[{"<td>",safeString[x],"</td>\n"}each x],"</tr>\n"}each x),"</table>\n"}
 
 hav:{[lat1;lon1;lat2;lon2]
   deg2rad:{x*(22%7)%180};
@@ -45,14 +46,19 @@ get_routes:{[start;end]
   tbl:update startdis:hav[start 0;start 1] . flip loc1,bikedis:hav . flip (loc1,'loc2),enddis:hav[end 0;end 1] . flip loc2 from tbl;
   tbl:`points xdesc `walkdis xasc update points:abs[min[(0;0^.Q.fu[station_info;([]station_id:station1)][;`points])]]+max[(0;0^.Q.fu[station_info;([]station_id:station2)][;`points])],walkdis:startdis+enddis from tbl;
   tbl:update name1:station_info[([]station_id:station1)][;`name],name2:station_info[([]station_id:station2)][;`name] from select from tbl where walkdis=(min;walkdis) fby points;
-  tbl:update rt0:getgoogleurl[start 0;start 1] .' loc1,rt1:getgoogleurl[;;end 0;end 1] .' loc2 from tbl;  
-  tbl:update startgdis:(getdistance each rt0),endgdis:getdistance each rt1 from tbl;
-  select points,start:name1,end:name2,start_dis:startdis,end_dis:enddis,total_g_dis:startgdis+endgdis,start_g_dis:startgdis,end_g_dis:endgdis,start_route:rt0,end_route:rt1 from tbl
+  tbl:update apirt0:getgoogleurl[start 0;start 1] .' loc1,apirt1:getgoogleurl[;;end 0;end 1] .' loc2,uirt0:getgoogleuiurl[start 0;start 1] .' loc1,uirt1:getgoogleuiurl[;;end 0;end 1] .' loc2 from tbl;  
+  tbl:update startgdis:(getdistance each apirt0),endgdis:getdistance each apirt1 from tbl;
+  / select points,start:name1,end:name2,total_distance:startgdis+endgdis,start_distance:startgdis,end_distance:endgdis,start_route:html_link each uirt0,end_route:html_link each uirt1,start_map:html_map each uirt0,end_map:html_map each uirt1 from tbl
+  select points,start:name1,end:name2,total_distance:startgdis+endgdis,start_distance:startgdis,end_distance:endgdis,start_route:html_link each uirt0,end_route:html_link each uirt1 from tbl
  }
+
+html_link:{"<a href=\"",x,"\">link</a>"}
+html_map:{"<iframe src=\"",x,"\" width=\"400\" height=\"300\" frameborder=\"0\" style=\"border:0\" allowfullscreen></iframe>"}
 
 genmail:{[start;end]
   x:htmltable get_routes[start;end];
-  system"echo '","<html><body>",x,"</body></html>","'|mail -s \"$(echo -s \"subject\nContent-Type: text/html\")\" colmearley@gmail.com";
+  header:"\"Citibike Angel Routes\nContent-Type: text/html\nMIME-Version: 1.0\nContent-Disposition: inline\n\"";
+  system"echo '<html>\n<body>\n",x,"</body>\n</html>\n'|mail -s ",header," colmearley@gmail.com"
  } 
 
 / 
