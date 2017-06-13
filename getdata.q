@@ -20,7 +20,11 @@ getbikeangelsstationpoints:{update "I"$string station_id,`int$points from flip `
 points_map:0N -2 -1 0 1 2i!`none`take2`take1`none`return1`return2
 googleapikey:"AIzaSyA83JE_NNqTl1WXB2tKI3tzNbR0UlTx7Mc"
 
-getdistance:{[lat0;long0;lat1;long1] .j.k[raze system 0N!"curl -sS 'https://maps.googleapis.com/maps/api/directions/json?origin=",lat0,",",long0,"&destination=",lat1,",",long1,"&mode=walking&units=miles&key=",googleapikey,"'"][`routes][`legs][;`distance][;`value]}
+getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",googleapikey}
+getdistance:{[url] sum raze[.j.k[raze system"curl -sS '",url,"'"][`routes][`legs][;`distance]]`value}
+
+safeString:{$[type[x] in 0 98 99h;.z.s each x;type[x]=10h;x;string x]}
+htmltable:{"<table>",({"<tr>",raze[{"<th>",safeString[x],"</th>"}each cols x],"</tr>"}[x],raze {"<tr>",raze[{"<td>",safeString[x],"</td>"}each x],"</tr>"}each x),"</table>"}
 
 hav:{[lat1;lon1;lat2;lon2]
   deg2rad:{x*(22%7)%180};
@@ -40,8 +44,16 @@ get_routes:{[start;end]
   station_info:update start_distance:hav . flip (lat,'lon) cross enlist start,end_distance:hav . flip (lat,'lon) cross enlist end from station_info;
   tbl:update loc1:station_info[([]station_id:station1)][;`lat`lon],loc2:station_info[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from station_info;
   tbl:update startdis:hav[start 0;start 1] . flip loc1,bikedis:hav . flip (loc1,'loc2),enddis:hav[end 0;end 1] . flip loc2 from tbl;
-  t1:`points xdesc `walkdis xasc update points:abs[min[(0;0^.Q.fu[station_info;([]station_id:station1)][;`points])]]+max[(0;0^.Q.fu[station_info;([]station_id:station2)][;`points])],walkdis:startdis+enddis from tbl;
-  update name1:station_info[([]station_id:station1)][;`name],name2:station_info[([]station_id:station2)][;`name] from select from t1 where walkdis=(min;walkdis) fby points
+  tbl:`points xdesc `walkdis xasc update points:abs[min[(0;0^.Q.fu[station_info;([]station_id:station1)][;`points])]]+max[(0;0^.Q.fu[station_info;([]station_id:station2)][;`points])],walkdis:startdis+enddis from tbl;
+  tbl:update name1:station_info[([]station_id:station1)][;`name],name2:station_info[([]station_id:station2)][;`name] from select from tbl where walkdis=(min;walkdis) fby points;
+  tbl:update rt0:getgoogleurl[start 0;start 1] .' loc1,rt1:getgoogleurl[;;end 0;end 1] .' loc2 from tbl;  
+  tbl:update startgdis:(getdistance each rt0),endgdis:getdistance each rt1 from tbl;
+  select points,start:name1,end:name2,start_dis:startdis,end_dis:enddis,total_g_dis:startgdis+endgdis,start_g_dis:startgdis,end_g_dis:endgdis,start_route:rt0,end_route:rt1 from tbl
+ }
+
+genmail:{[start;end]
+  x:htmltable get_routes[start;end];
+  system"echo '","<html><body>",x,"</body></html>","'|mail -s \"$(echo -s \"subject\nContent-Type: text/html\")\" colmearley@gmail.com";
  } 
 
 / 
