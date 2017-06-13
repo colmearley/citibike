@@ -21,6 +21,7 @@ googleapikey:"AIzaSyA83JE_NNqTl1WXB2tKI3tzNbR0UlTx7Mc"
 
 getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",googleapikey}
 getgoogleuiurl:{[lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&travelmode=walking"}
+getgoogleuiurltotal:{[start;end;lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[start 0],",",string[start 1],"&waypoints=",string[lat0],",",string[lon0],"|",string[lat1],",",string[lon1],"&destination=",string[end 0],",",string[end 1],"&travelmode=bicycling"}
 getdistance:{[url] sum raze[.j.k[raze system"curl -sS '",url,"'"][`routes][`legs][;`distance]]`value}
 
 safeString:{$[type[x] in 0 98 99h;.z.s each x;type[x]=10h;x;string x]}
@@ -46,13 +47,13 @@ get_routes:{[start;end]
   if[start~places`home;tbl:update startdis:0f from tbl where station1 in (exec station_id from station_info where name like "South End Ave & Liberty St")];
   tbl:`points xdesc `walkdis xasc update points:abs[min[(0;0^.Q.fu[station_info;([]station_id:station1)][;`points])]]+max[(0;0^.Q.fu[station_info;([]station_id:station2)][;`points])],walkdis:startdis+enddis from tbl;
   tbl:update name1:station_info[([]station_id:station1)][;`name],name2:station_info[([]station_id:station2)][;`name] from select from tbl where walkdis=(min;walkdis) fby points;
-  tbl:update apirt0:getgoogleurl[start 0;start 1] .' loc1,apirt1:getgoogleurl[;;end 0;end 1] .' loc2,uirt0:getgoogleuiurl[start 0;start 1] .' loc1,uirt1:getgoogleuiurl[;;end 0;end 1] .' loc2 from tbl;  
+  tbl:update apirt0:getgoogleurl[start 0;start 1] .' loc1,apirt1:getgoogleurl[;;end 0;end 1] .' loc2,uirt0:getgoogleuiurl[start 0;start 1] .' loc1,uirt1:getgoogleuiurl[;;end 0;end 1] .' loc2,uitrt:getgoogleuiurltotal[start;end] .' (loc1,'loc2) from tbl;  
   tbl:update startgdis:(getdistance each apirt0),endgdis:getdistance each apirt1 from tbl;
   / select points,start:name1,end:name2,total_distance:startgdis+endgdis,start_distance:startgdis,end_distance:endgdis,start_route:html_link each uirt0,end_route:html_link each uirt1,start_map:html_map each uirt0,end_map:html_map each uirt1 from tbl
-  select points,start:name1,end:name2,total_distance:startgdis+endgdis,start_distance:startgdis,end_distance:endgdis,start_route:html_link each uirt0,end_route:html_link each uirt1 from tbl
+  select points,start:html_link'[uirt0;name1],end:html_link'[uirt1;name2],total_distance:startgdis+endgdis,start_distance:startgdis,end_distance:endgdis,html_link[;"route"]each uitrt from tbl
  }
 
-html_link:{"<a href=\"",x,"\">link</a>"}
+html_link:{[url;text] "<a href=\"",url,"\">",text,"</a>"}
 html_map:{"<iframe src=\"",x,"\" width=\"400\" height=\"300\" frameborder=\"0\" style=\"border:0\" allowfullscreen></iframe>"}
 
 genmail:{[start;end]
