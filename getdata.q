@@ -41,9 +41,9 @@ places[`home]:40.7092 -74.0133
 
 get_routes:{[start;end]
   station_info:getstationinfostatuspoints[];
-  station_info:update start_distance:hav . flip (lat,'lon) cross enlist start,end_distance:hav . flip (lat,'lon) cross enlist end from station_info;
   tbl:update loc1:station_info[([]station_id:station1)][;`lat`lon],loc2:station_info[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from station_info;
   tbl:update startdis:hav[start 0;start 1] . flip loc1,bikedis:hav . flip (loc1,'loc2),enddis:hav[end 0;end 1] . flip loc2 from tbl;
+  if[start~places`home;tbl:update startdis:0f from tbl where station1 in (exec station_id from station_info where name like "South End Ave & Liberty St")];
   tbl:`points xdesc `walkdis xasc update points:abs[min[(0;0^.Q.fu[station_info;([]station_id:station1)][;`points])]]+max[(0;0^.Q.fu[station_info;([]station_id:station2)][;`points])],walkdis:startdis+enddis from tbl;
   tbl:update name1:station_info[([]station_id:station1)][;`name],name2:station_info[([]station_id:station2)][;`name] from select from tbl where walkdis=(min;walkdis) fby points;
   tbl:update apirt0:getgoogleurl[start 0;start 1] .' loc1,apirt1:getgoogleurl[;;end 0;end 1] .' loc2,uirt0:getgoogleuiurl[start 0;start 1] .' loc1,uirt1:getgoogleuiurl[;;end 0;end 1] .' loc2 from tbl;  
