@@ -1,7 +1,6 @@
-\l qml.q
-
 curl_raw:{.j.k first system"curl -sS ",x}
 curl:{curl_raw[x]`data}
+atan2:{u:atan[y%x]; ?[x<0.0;?[u>=0.0;u-22%7;u+22%7];u]}
 
 posixqtime:{`datetime$1970.01.01D+1000000000*`long$x}
 genurl:"https://gbfs.citibikenyc.com/gbfs/gbfs.json"
@@ -30,7 +29,7 @@ hav:{[lat1;lon1;lat2;lon2]
   deg2rad:{x*(22%7)%180};
   R:6371000; dLat:deg2rad[lat2-lat1]; dLon:deg2rad[lon2-lon1];
   a:xexp[sin[dLat%2];2] + cos[deg2rad[lat1]] * cos[deg2rad[lat2]] * xexp[sin[dLon%2];2];
-  c:2 * .qml.atan2[sqrt[a];sqrt[1-a]];
+  c:2 * atan2[sqrt[a];sqrt[1-a]];
   d:R*c;
   d
  }
