@@ -11,7 +11,7 @@ getsysteminfo:{curl[urls[`system_information]]}
 getsystemalerts:{update "I"$alert_id, `$Type, "I"$station_ids, posixqtime last_updated from `alert_id`Type xcol curl[urls[`system_alerts]]`alerts}
 getstationinfo:{update "I"$station_id,`$short_name,`$rental_methods from curl[urls`station_information]`stations}
 getstationstatus:{update "I"$station_id,posixqtime last_reported from curl[urls`station_status]`stations}
-getstationinfostatuspoints:{update points_en:points_map[points] from `station_id xasc (uj/)`station_id xkey/:(getstationinfo[];getstationstatus[];getbikeangelsstationpoints[])}
+getstationinfostatuspoints:{update points_en:points_map[points] from update 0^points from `station_id xasc (uj/)`station_id xkey/:(getstationinfo[];getstationstatus[];getbikeangelsstationpoints[])}
 getregions:{update "I"$region_id from curl[urls`system_regions]`regions}
 
 getbikeangelsleaderboard:{update `$user from curl_raw[urls`bikeangelsleaderboard]`leaderboard}
@@ -23,6 +23,7 @@ getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/direct
 getgoogleuiurl:{[lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&travelmode=walking"}
 getgoogleuiurltotal:{[start;end;lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[start 0],",",string[start 1],"&waypoints=",string[lat0],",",string[lon0],"|",string[lat1],",",string[lon1],"&destination=",string[end 0],",",string[end 1],"&travelmode=bicycling"}
 getdistance:{[url] sum raze[.j.k[raze system"curl -sS '",url,"'"][`routes][`legs][;`distance]]`value}
+googledistance:{[lat0;lon0;lat1;lon1] getdistance each getgoogleurl .' flip (),/:(lat0;lon0;lat1;lon1)}
 
 safeString:{$[type[x] in 0 98 99h;.z.s each x;type[x]=10h;x;string x]}
 htmltable:{"<table>\n",({"<tr>\n",raze[{"<th>",safeString[x],"</th>\n"}each cols x],"</tr>\n"}[x],raze {"<tr>\n",raze[{"<td>",safeString[x],"</td>\n"}each x],"</tr>\n"}each x),"</table>\n"}
@@ -35,22 +36,22 @@ hav:{[lat1;lon1;lat2;lon2]
   d:R*c;
   d
  }
+manhattan_distance:{[lat1;lon1;lat2;lon2]  hav[lat1;lon1;lat2;lon1]+hav[lat1;lon1;lat1;lon2]}
 
 places:enlist[`]!enlist[2#0nf]
 places[`work]:40.7526 -73.9902
 places[`home]:40.7092 -74.0133
+favorites:`home`work!("South End Ave & Liberty St";"8 Ave & W 33 St")
 
-get_routes:{[start;end]
+get_routes:{[start_name;end_name]
+  start:places[start_name]; end:places[end_name];
   station_info:getstationinfostatuspoints[];
-  tbl:update loc1:station_info[([]station_id:station1)][;`lat`lon],loc2:station_info[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from station_info;
-  tbl:update startdis:hav[start 0;start 1] . flip loc1,bikedis:hav . flip (loc1,'loc2),enddis:hav[end 0;end 1] . flip loc2 from tbl;
-  if[start~places`home;tbl:update startdis:0f from tbl where station1 in (exec station_id from station_info where name like "South End Ave & Liberty St")];
-  tbl:`points xdesc `walkdis xasc update points:abs[min[(0;0^.Q.fu[station_info;([]station_id:station1)][;`points])]]+max[(0;0^.Q.fu[station_info;([]station_id:station2)][;`points])],walkdis:startdis+enddis from tbl;
-  tbl:update name1:station_info[([]station_id:station1)][;`name],name2:station_info[([]station_id:station2)][;`name] from select from tbl where walkdis=(min;walkdis) fby points;
-  tbl:update apirt0:getgoogleurl[start 0;start 1] .' loc1,apirt1:getgoogleurl[;;end 0;end 1] .' loc2,uirt0:getgoogleuiurl[start 0;start 1] .' loc1,uirt1:getgoogleuiurl[;;end 0;end 1] .' loc2,uitrt:getgoogleuiurltotal[start;end] .' (loc1,'loc2) from tbl;  
-  tbl:update startgdis:(getdistance each apirt0),endgdis:getdistance each apirt1 from tbl;
-  / select points,start:name1,end:name2,total_distance:startgdis+endgdis,start_distance:startgdis,end_distance:endgdis,start_route:html_link each uirt0,end_route:html_link each uirt1,start_map:html_map each uirt0,end_map:html_map each uirt1 from tbl
-  select points,start:html_link'[uirt0;name1],end:html_link'[uirt1;name2],total_distance:startgdis+endgdis,start_distance:startgdis,end_distance:endgdis,html_link[;"route"]each uitrt from tbl
+  tbl1:select name,points,lat,lon,start_dis:?[name like favorites[start_name];0;hav[start 0;start 1] . (lat;lon)], end_dis:?[name like favorites[end_name];0;hav[end 0;end 1] . (lat;lon)] from station_info;
+  tbls:select station1:name,lat1:lat,lon1:lon,points1:points,start_dis from tbl1 where start_dis=(min;start_dis) fby points,points<=0;
+  tble:select station2:name,lat2:lat,lon2:lon,points2:points,end_dis from tbl1 where end_dis=(min;end_dis) fby points,points>=0;
+  tbl2:select from (update points:abs[points1]+points2 from tbls cross tble) where (start_dis+end_dis)=(min;start_dis+end_dis) fby points;
+  tbl2:select points,start:{[start;name;points;lat;lon] html_link[getgoogleuiurl[start 0;start 1;lat;lon];name," (",string[points],")"]}[start]'[station1;points1;lat1;lon1],end:{[end;name;points;lat;lon] html_link[getgoogleuiurl[end 0;end 1;lat;lon];name," (",string[points],")"]}[start]'[station2;points2;lat2;lon2],start_distance:getdistance each getgoogleurl[start 0;start 1]'[lat1;lon1],end_distance:getdistance each getgoogleurl[;;end 0;end 1]'[lat2;lon2],route:html_link[;"route"] each getgoogleuiurltotal[start;end]'[lat1;lon1;lat2;lon2] from tbl2;
+  `points xdesc `total_distance xasc `points`start`end`total_distance`start_distance`end_distance`route xcols update total_distance:start_distance+end_distance from tbl2
  }
 
 html_link:{[url;text] "<a href=\"",url,"\">",text,"</a>"}
