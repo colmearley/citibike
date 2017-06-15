@@ -1,4 +1,4 @@
-curl_raw:{.j.k first system"curl -sS ",x}
+curl_raw:{.j.k first system"curl -ksS ",x}
 curl:{curl_raw[x]`data}
 atan2:{[y;x] u:atan[y%x]; ?[x<0.0;?[u>=0.0;u-22%7;u+22%7];u]}
 
@@ -22,8 +22,9 @@ googleapikey:"AIzaSyA83JE_NNqTl1WXB2tKI3tzNbR0UlTx7Mc"
 getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",googleapikey}
 getgoogleuiurl:{[lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&travelmode=walking"}
 getgoogleuiurltotal:{[start;end;lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[start 0],",",string[start 1],"&waypoints=",string[lat0],",",string[lon0],"|",string[lat1],",",string[lon1],"&destination=",string[end 0],",",string[end 1],"&travelmode=bicycling"}
-getdistance:{[url] sum raze[.j.k[raze system"curl -sS '",url,"'"][`routes][`legs][;`distance]]`value}
-googledistance:{[lat0;lon0;lat1;lon1] getdistance each getgoogleurl .' flip (),/:(lat0;lon0;lat1;lon1)}
+getdistance:{[url] sum raze[.j.k[raze system"curl -ksS '",url,"'"][`routes][`legs][;`distance]]`value}
+gdcache:enlist[4#0nf]!enlist 0nf
+googledistance:{[lat0;lon0;lat1;lon1] {[lat0;lon0;lat1;lon1] if[not (lat0;lon0;lat1;lon1) in key gdcache;gdcache[(lat0;lon0;lat1;lon1)]:getdistance getgoogleurl[lat0;lon0;lat1;lon1]]; gdcache[(lat0;lon0;lat1;lon1)]}.' flip (lat0;lon0;lat1;lon1)}
 
 safeString:{$[type[x] in 0 98 99h;.z.s each x;type[x]=10h;x;string x]}
 htmltable:{"<table>\n",({"<tr>\n",raze[{"<th>",safeString[x],"</th>\n"}each cols x],"</tr>\n"}[x],raze {"<tr>\n",raze[{"<td>",safeString[x],"</td>\n"}each x],"</tr>\n"}each x),"</table>\n"}
@@ -53,18 +54,20 @@ places:enlist[`]!enlist[2#0nf]
 places[`work]:40.7526 -73.9902
 places[`home]:40.7092 -74.0133
 places[`1010]:40.75366 -73.97241
+places[`hd]:40.74185 -73.99142
 favorites:enlist[`]!enlist ""
 favorites[`home]:"South End Ave & Liberty St"
 favorites[`work]:"8 Ave & W 33 St"
 
 get_routes:{[start_name;end_name]
-  start:places[start_name]; end:places[end_name];
+  $[type[start_name]=-11h;[start:places[start_name]];[start:start_name;start_name:`]];
+  end:places[end_name];
   station_info:getstationinfostatuspoints[];
   tbl1:select name,points,lat,lon,start_dis:?[name like favorites[start_name];0;hav[start 0;start 1] . (lat;lon)], end_dis:?[name like favorites[end_name];0;hav[end 0;end 1] . (lat;lon)] from station_info;
   tbls:select station1:name,lat1:lat,lon1:lon,points1:points,start_dis from tbl1 where start_dis=(min;start_dis) fby points;
   tble:select station2:name,lat2:lat,lon2:lon,points2:points,end_dis from tbl1 where end_dis=(min;end_dis) fby points;
   tbl2:select from (update points:?[(points1>0) or (points2<0);0;abs[points1]+points2] from tbls cross tble) where (start_dis+end_dis)=(min;start_dis+end_dis) fby points;
-  tbl2:select points,start:{[start;name;points;lat;lon] html_link[getgoogleuiurl[start 0;start 1;lat;lon];name," (",string[points],")"]}[start]'[station1;points1;lat1;lon1],station1,end:{[end;name;points;lat;lon] html_link[getgoogleuiurl[end 0;end 1;lat;lon];name," (",string[points],")"]}[start]'[station2;points2;lat2;lon2],station2,start_distance:getdistance each getgoogleurl[start 0;start 1]'[lat1;lon1],end_distance:getdistance each getgoogleurl[;;end 0;end 1]'[lat2;lon2],route:html_link[;"route"] each getgoogleuiurltotal[start;end]'[lat1;lon1;lat2;lon2] from tbl2;
+  tbl2:select points,start:{[start;name;points;lat;lon] html_link[getgoogleuiurl[start 0;start 1;lat;lon];name," (",string[points],")"]}[start]'[station1;points1;lat1;lon1],station1,end:{[end;name;points;lat;lon] html_link[getgoogleuiurl[lat;lon;end 0;end 1];name," (",string[points],")"]}[end]'[station2;points2;lat2;lon2],station2,start_distance:googledistance[start 0;start 1;lat1;lon1],end_distance:googledistance[lat2;lon2;end 0;end 1],route:html_link[;"route"] each getgoogleuiurltotal[start;end]'[lat1;lon1;lat2;lon2] from tbl2;
   `points xdesc `total_distance xasc `points`start`station1`end`station2`total_distance`start_distance`end_distance`route xcols update total_distance:start_distance+end_distance from tbl2
  }
 
@@ -75,25 +78,18 @@ genmail:{[start;end]
   r:get_routes[start;end];
   x:htmltable select points,start,end,total_distance,start_distance,end_distance,route from r;
   header:"\"Citibike Angel Routes\nContent-Type: text/html\nMIME-Version: 1.0\nContent-Disposition: inline\n\"";
-  system"echo '<html>\n<body>\n",x,"</body>\n</html>\n'|mail -s ",header," colmearley@gmail.com";
-  select points,start:station1,end:station2,total_distance,start_distance,end_distance from r
+  html:"<html>\n<head><title>Citibike Angel Routes :: ",(-3!start)," to ",(-3!end),"</title></head>\n<body>\n<p>Citibike Angel Routes :: ",(-3!start)," to ",(-3!end),"</p>\n",x,"</body>\n</html>\n";
+  system"echo '",html,"'|mail -s ",header," colmearley@gmail.com";
+  html
+  / select points,start:station1,end:station2,total_distance,start_distance,end_distance from r
  } 
 
-/ 
-example walking from south end av @ liberty st to 8th av @ 33rd st is 3.226167 miles
-getdistance . string value exec first lat,first lon, last lat, last lon from r'[3002 490]
+/ web
+.z.PH:.z.ph
+h:{[str] "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\nContent-Length: ",string[count str],"\r\n\r\n",str}
+c:{str:"\n" sv read0 hsym x; h[str]}
+logger:([]timestamp:();args:();result:())
+.z.ph:{0N!x; r:$[any first[x]~/:(enlist["?"];"");c[`geo.html];first[x] like "?genmail*";h value .h.uh 1 _ first x;.z.PH x]; `logger insert (.z.p;x;r); r}
 
-/ matrix of distance between each station
-r:getstationinfostatuspoints[]
-r1:update loc1:r[([]station_id:station1)][;`lat`lon],loc2:r[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from r
-r1:update distance:hav . flip (loc1,'loc2) from r1
-dismap:exec distance[;0] by station1,station2 from r1
-
-
-r2:`station_id xasc ([]station_id:-1 -2i;lat:places[`home`work][;0]; lon:places[`home`work][;1]),select station_id,lat,lon from r
-r3:update loc1:(`station_id xkey r2)[([]station_id:station1)][;`lat`lon],loc2:(`station_id xkey r2)[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from r2
-r3:update distance:hav . flip (loc1,'loc2) from r3
-r3:update loc1:(`station_id xkey r2)[([]station_id:station1)][;`lat`lon],loc2:(`station_id xkey r2)[([]station_id:station2)][;`lat`lon] from flip `station1`station2!flip exec station_id cross station_id from r2
-
-`walkdistance xasc raze { raze {[x;y] enlist `start`station1`station2`end`walkdistance`bikedistance!(x`station1;x`station2;y`station2;x`station1;x[`distance]+exec first distance from r3 where station1=y[`station2],station2=x[`station1];y[`distance])}[x]'[select from r3 where station1=x[`station2],station2 in exec station_id from r where points_en=`return2]}'[select from r3 where station1=-1,station2 in (exec station_id from r where points_en=`take2)]
-
+/ alert location from address bar
+/ javascript:function getCurrentLocation() {navigator.geolocation.getCurrentPosition(showPosition)}; function showPosition(position){ alert(position.coords.latitude + ", " + position.coords.longitude)}; getCurrentLocation()
