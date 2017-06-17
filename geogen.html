@@ -30,9 +30,11 @@ function disableCurrentLocation(message) {
 }
 
 function radioPosition(position) {
+  lat = position.coords.latitude.toPrecision(7);
+  lon = position.coords.longitude.toPrecision(7); 
   var radio  = document.getElementById("src_current_location");
-  radio.value = position.coords.latitude + ", " + position.coords.longitude;
-  radio.labels[0].innerText = "Current Location (" + position.coords.latitude + ", " + position.coords.longitude + ")";
+  radio.value = lat + ", " + lon;
+  radio.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
 }
 
 function radioError(error) {
@@ -74,7 +76,7 @@ function getRoutes(){
     console.log("loading routes");
     console.log("src:"+src_val+" dest:"+dest_val);
     var res = document.getElementById("result_div");
-    res.innerHTML = '<iframe src=\"https://#host:#port/?genmail[' + src_val + ';' + dest_val + ']\" width=1000 height=600/>';
+    res.innerHTML = '<iframe src=\"?genmail[' + src_val + ';' + dest_val + ']\" width=1000 height=600/>';
   }
 
  console.log("getRoutes() end.");

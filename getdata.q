@@ -52,8 +52,8 @@ box_loc:{[lat;lon;dis]
 manhattan_distance:{[lat1;lon1;lat2;lon2]  hav[lat1;lon1;lat2;lon1]+hav[lat1;lon1;lat1;lon2]}
 
 places:enlist[`]!enlist[2#0nf]
-places[`work]:40.7526 -73.9902
-places[`home]:40.7092 -74.0133
+places[`work]:40.75255 -73.99008
+places[`home]:40.70919 -74.01329
 places[`1010]:40.75366 -73.97241
 places[`hd]:40.74185 -73.99142
 favorites:enlist[`]!enlist ""
