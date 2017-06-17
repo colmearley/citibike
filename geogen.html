@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+
+#nav
+
+<div id="result_div">
+<iframe id="result_iframe" width=1000 height=600>
+ <p>Your web browser does no support iframes</p>
+</iframe>
+</div>
+<script>
+function getCurrentLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(radioPosition, radioError);
+  } else {
+    disableCurrentLocation("Location information not supported.")
+  }
+}
+
+function disableCurrentLocation(message) {
+  var radio  = document.getElementById("src_current_location");
+  var home  = document.getElementById("src_home");
+  radio.disabled = true;
+  radio.labels[0].innerText = "Current Location is not available:'" + message + "'";
+  radio.checked = false;
+  home.checked = true;
+}
+
+function radioPosition(position) {
+  var radio  = document.getElementById("src_current_location");
+  radio.value = position.coords.latitude + ", " + position.coords.longitude;
+  radio.labels[0].innerText = "Current Location (" + position.coords.latitude + ", " + position.coords.longitude + ")";
+}
+
+function radioError(error) {
+  switch(error.code) {
+    case error.PERMISSION_DENIED:
+      disableCurrentLocation("Permission Denied")
+        break;
+    case error.POSITION_UNAVAILABLE:
+      disableCurrentLocation("Position Unavailable")
+        break;
+    case error.TIMEOUT:
+      disableCurrentLocation("Timeout")
+        break;
+    case error.UNKNOWN_ERROR:
+      disableCurrentLocation("Unknown Error")
+        break;
+  }
+}
+
+function getRoutes(){
+  console.log("getRoutes() start.");
+  var src_val = "`";
+  var dest_val = "`";
+  if (document.getElementById("src_current_location").checked) {
+    src_val = document.getElementById("src_current_location").value;
+  }
+
+#js_get_routes_src
+
+#js_get_routes_dest
+
+  if (src_val == "`") {
+    alert("Please Choose a Source.");
+  }
+  else if (dest_val == "`") {
+    alert("Please Choose a Destination.");
+  }
+  else {
+    console.log("loading routes");
+    console.log("src:"+src_val+" dest:"+dest_val);
+    var res = document.getElementById("result_div");
+    res.innerHTML = '<iframe src=\"https://#host:#port/?genmail[' + src_val + ';' + dest_val + ']\" width=1000 height=600/>';
+  }
+
+ console.log("getRoutes() end.");
+
+}
+
+</script>
+
+</body>
+</html>

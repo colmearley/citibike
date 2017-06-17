@@ -6,7 +6,8 @@ posixqtime:{`datetime$1970.01.01D+1000000000*`long$x}
 genurl:"https://gbfs.citibikenyc.com/gbfs/gbfs.json"
 
 getgenurl:{exec name!url from update `$name from curl[genurl][`en;`feeds]}
-urls:getgenurl[],`bikeangelsleaderboard`bikeangelspoints!("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores")
+if[not `urls in key `.;
+ urls:getgenurl[],`bikeangelsleaderboard`bikeangelspoints!("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores")];
 getsysteminfo:{curl[urls[`system_information]]}
 getsystemalerts:{update "I"$alert_id, `$Type, "I"$station_ids, posixqtime last_updated from `alert_id`Type xcol curl[urls[`system_alerts]]`alerts}
 getstationinfo:{update "I"$station_id,`$short_name,`$rental_methods from curl[urls`station_information]`stations}
@@ -17,13 +18,13 @@ getregions:{update "I"$region_id from curl[urls`system_regions]`regions}
 getbikeangelsleaderboard:{update `$user from curl_raw[urls`bikeangelsleaderboard]`leaderboard}
 getbikeangelsstationpoints:{update "I"$string station_id,`int$points from flip `station_id`points!(key;value)@\:curl_raw[urls`bikeangelspoints][`stations]}
 points_map:0N -2 -1 0 1 2i!`none`take2`take1`none`return1`return2
-googleapikey:"AIzaSyA83JE_NNqTl1WXB2tKI3tzNbR0UlTx7Mc"
 
-getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",googleapikey}
+getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",getenv[`googleapikey]}
 getgoogleuiurl:{[lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&travelmode=walking"}
 getgoogleuiurltotal:{[start;end;lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[start 0],",",string[start 1],"&waypoints=",string[lat0],",",string[lon0],"|",string[lat1],",",string[lon1],"&destination=",string[end 0],",",string[end 1],"&travelmode=bicycling"}
 getdistance:{[url] sum raze[.j.k[raze system"curl -ksS '",url,"'"][`routes][`legs][;`distance]]`value}
-gdcache:enlist[4#0nf]!enlist 0nf
+if[not `gdcache in key `..;
+ gdcache:enlist[4#0nf]!enlist 0nf];
 googledistance:{[lat0;lon0;lat1;lon1] {[lat0;lon0;lat1;lon1] if[not (lat0;lon0;lat1;lon1) in key gdcache;gdcache[(lat0;lon0;lat1;lon1)]:getdistance getgoogleurl[lat0;lon0;lat1;lon1]]; gdcache[(lat0;lon0;lat1;lon1)]}.' flip (lat0;lon0;lat1;lon1)}
 
 safeString:{$[type[x] in 0 98 99h;.z.s each x;type[x]=10h;x;string x]}
@@ -79,17 +80,29 @@ genmail:{[start;end]
   x:htmltable select points,start,end,total_distance,start_distance,end_distance,route from r;
   header:"\"Citibike Angel Routes\nContent-Type: text/html\nMIME-Version: 1.0\nContent-Disposition: inline\n\"";
   html:"<html>\n<head><title>Citibike Angel Routes :: ",(-3!start)," to ",(-3!end),"</title></head>\n<body>\n<p>Citibike Angel Routes :: ",(-3!start)," to ",(-3!end),"</p>\n",x,"</body>\n</html>\n";
-  system"echo '",html,"'|mail -s ",header," colmearley@gmail.com";
+  / system"echo '",html,"'|mail -s ",header," ",getenv[`email];
   html
   / select points,start:station1,end:station2,total_distance,start_distance,end_distance from r
  } 
 
 / web
-.z.PH:.z.ph
-h:{[str] "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\nContent-Length: ",string[count str],"\r\n\r\n",str}
-c:{str:"\n" sv read0 hsym x; h[str]}
-logger:([]timestamp:();args:();result:())
-.z.ph:{0N!x; r:$[any first[x]~/:(enlist["?"];"");c[`geo.html];first[x] like "?genmail*";h value .h.uh 1 _ first x;.z.PH x]; `logger insert (.z.p;x;r); r}
+if[not `webenabled in key `.;
+  webenabled:1b;
+  .z.PH:.z.ph;
+  h:{[str] "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\nContent-Length: ",string[count str],"\r\n\r\n",str};
+  c:{str:"\n" sv read0 hsym x; h[str]};
+  logger:([]timestamp:();args:();result:());
+  .z.ph:{0N!x; r:$[any first[x]~/:(enlist["?"];"");h[get_geo[]];first[x] like "?genmail*";h value .h.uh 1 _ first x;.z.PH x]; `logger insert (.z.p;x;r); r}];
+
+translate:enlist[`]!enlist[(::)]
+translate[`js_get_routes_src]:{raze {"  if (document.getElementById(\"src_",x,"\").checked) {\n    src_val = \"`\" + document.getElementById(\"src_",x,"\").value;\n  }\n"}each string 1 _ key places}
+translate[`js_get_routes_dest]:{raze {"  if (document.getElementById(\"dest_",x,"\").checked) {\n    dest_val = \"`\" + document.getElementById(\"dest_",x,"\").value;\n  }\n"}each string 1 _ key places}
+form_sources:{raze {" <input type=\"radio\" display=\"inline\" name=\"src\" id=\"src_",x,"\" value=\"",x,"\"><label for=\"src_",x,"\">",@[x;0;upper],"</label>\n"}each string 1 _ key places}
+form_dest:{raze {" <input type=\"radio\" display=\"inline\" name=\"dest\" id=\"dest_",x,"\" value=\"",x,"\"><label for=\"dest_",x,"\">",@[x;0;upper],"</label>\n"}each string 1 _ key places}
+translate[`nav]:{"<p>Choose Source:</p>\n<form id=\"sources\" display=\"inline\" action=\"\">",form_sources[],"<input type=\"radio\" name=\"src\" display=\"inline\" id=\"src_current_location\" value=\"current_location\" onClick=\"getCurrentLocation()\"><label for=\"src_current_location\">Current Location</label>\n</form>\n\n<p>Choose Destination:</p>\n<form name=\"dest\" display=\"inline\" action=\"\">",form_dest[],"</form> <p><button id=\"get_routes_button\" onclick=\"getRoutes()\">GetRoutes</button></p>"}
+translate[`host]:{string[.z.h]}
+translate[`port]:{string system"p"}
+get_geo:{ssr[x;"#",string y;z[]]}/["\n" sv read0[`:geogen.html];1 _ key translate;1 _ value translate]
 
 / alert location from address bar
 / javascript:function getCurrentLocation() {navigator.geolocation.getCurrentPosition(showPosition)}; function showPosition(position){ alert(position.coords.latitude + ", " + position.coords.longitude)}; getCurrentLocation()
