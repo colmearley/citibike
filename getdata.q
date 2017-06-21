@@ -1,4 +1,4 @@
-curl_raw:{.j.k first system"curl -ksS ",x}
+curl_raw:{.j.k raze .Q.hg[hsym `$x]}
 curl:{curl_raw[x]`data}
 atan2:{[y;x] u:atan[y%x]; ?[x<0.0;?[u>=0.0;u-22%7;u+22%7];u]}
 
@@ -22,7 +22,7 @@ points_map:0N -2 -1 0 1 2i!`none`take2`take1`none`return1`return2
 getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",getenv[`googleapikey]}
 getgoogleuiurl:{[lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&travelmode=walking"}
 getgoogleuiurltotal:{[start;end;lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[start 0],",",string[start 1],"&waypoints=",string[lat0],",",string[lon0],"|",string[lat1],",",string[lon1],"&destination=",string[end 0],",",string[end 1],"&travelmode=bicycling"}
-getdistance:{[url] sum raze[.j.k[raze system"curl -ksS '",url,"'"][`routes][`legs][;`distance]]`value}
+getdistance:{[url] sum raze[curl_raw[url][`routes][`legs][;`distance]]`value}
 if[not `gdcache in key `..;
  gdcache:enlist[4#0nf]!enlist 0nf];
 googledistance:{[lat0;lon0;lat1;lon1] {[lat0;lon0;lat1;lon1] if[not (lat0;lon0;lat1;lon1) in key gdcache;gdcache[(lat0;lon0;lat1;lon1)]:getdistance getgoogleurl[lat0;lon0;lat1;lon1]]; gdcache[(lat0;lon0;lat1;lon1)]}.' flip (lat0;lon0;lat1;lon1)}
