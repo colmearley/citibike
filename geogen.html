@@ -27,6 +27,12 @@ function disableCurrentLocation(message) {
   radio.labels[0].innerText = "Current Location is not available:'" + message + "'";
   radio.checked = false;
   home.checked = true;
+  var radio_dest  = document.getElementById("dest_current_location");
+  var home_dest  = document.getElementById("dest_home");
+  radio_dest.disabled = true;
+  radio_dest.labels[0].innerText = "Current Location is not available:'" + message + "'";
+  radio_dest.checked = false;
+  home_dest.checked = true;
 }
 
 function radioPosition(position) {
@@ -35,6 +41,9 @@ function radioPosition(position) {
   var radio  = document.getElementById("src_current_location");
   radio.value = lat + ", " + lon;
   radio.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
+  var radio_dest  = document.getElementById("dest_current_location");
+  radio_dest.value = lat + ", " + lon;
+  radio_dest.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
 }
 
 function radioError(error) {
@@ -60,6 +69,9 @@ function getRoutes(){
   var dest_val = "`";
   if (document.getElementById("src_current_location").checked) {
     src_val = document.getElementById("src_current_location").value;
+  }
+  if (document.getElementById("dest_current_location").checked) {
+    dest_val = document.getElementById("dest_current_location").value;
   }
 
 #js_get_routes_src

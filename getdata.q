@@ -62,7 +62,7 @@ favorites[`work]:"8 Ave & W 33 St"
 
 get_routes:{[start_name;end_name]
   $[type[start_name]=-11h;[start:places[start_name]];[start:start_name;start_name:`]];
-  end:places[end_name];
+  $[type[end_name]=-11h;[end:places[end_name]];[end:end_name;end_name:`]];
   station_info:getstationinfostatuspoints[];
   tbl1:select name,points,lat,lon,start_dis:?[name like favorites[start_name];0;hav[start 0;start 1] . (lat;lon)], end_dis:?[name like favorites[end_name];0;hav[end 0;end 1] . (lat;lon)] from station_info;
   tbls:select station1:name,lat1:lat,lon1:lon,points1:points,start_dis from tbl1 where start_dis=(min;start_dis) fby points;
@@ -99,7 +99,7 @@ translate[`js_get_routes_src]:{raze {"  if (document.getElementById(\"src_",x,"\
 translate[`js_get_routes_dest]:{raze {"  if (document.getElementById(\"dest_",x,"\").checked) {\n    dest_val = \"`\" + document.getElementById(\"dest_",x,"\").value;\n  }\n"}each string 1 _ key places}
 form_sources:{raze {" <input type=\"radio\" display=\"inline\" name=\"src\" id=\"src_",x,"\" value=\"",x,"\"><label for=\"src_",x,"\">",@[x;0;upper],"</label>\n"}each string 1 _ key places}
 form_dest:{raze {" <input type=\"radio\" display=\"inline\" name=\"dest\" id=\"dest_",x,"\" value=\"",x,"\"><label for=\"dest_",x,"\">",@[x;0;upper],"</label>\n"}each string 1 _ key places}
-translate[`nav]:{"<p>Choose Source:</p>\n<form id=\"sources\" display=\"inline\" action=\"\">",form_sources[],"<input type=\"radio\" name=\"src\" display=\"inline\" id=\"src_current_location\" value=\"current_location\" onClick=\"getCurrentLocation()\"><label for=\"src_current_location\">Current Location</label>\n</form>\n\n<p>Choose Destination:</p>\n<form name=\"dest\" display=\"inline\" action=\"\">",form_dest[],"</form> <p><button id=\"get_routes_button\" onclick=\"getRoutes()\">GetRoutes</button></p>"}
+translate[`nav]:{"<p>Choose Source:</p>\n<form id=\"sources\" display=\"inline\" action=\"\">",form_sources[],"<input type=\"radio\" name=\"src\" display=\"inline\" id=\"src_current_location\" value=\"current_location\" onClick=\"getCurrentLocation()\"><label for=\"src_current_location\">Current Location</label>\n</form>\n\n<p>Choose Destination:</p>\n<form name=\"dest\" display=\"inline\" action=\"\">",form_dest[],"<input type=\"radio\" name=\"dest\" display=\"inline\" id=\"dest_current_location\" value=\"current_location\" onClick=\"getCurrentLocation()\"><label for=\"dest_current_location\">Current Location</label>\n</form> <p><button id=\"get_routes_button\" onclick=\"getRoutes()\">GetRoutes</button></p>"}
 translate[`host]:{string[.z.h]}
 translate[`port]:{string system"p"}
 get_geo:{ssr[x;"#",string y;z[]]}/["\n" sv read0[`:geogen.html];1 _ key translate;1 _ value translate]
