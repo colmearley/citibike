@@ -1,3 +1,4 @@
+\l cache.q
 curl_raw:{.j.k raze .Q.hg[hsym `$x]}
 curl:{curl_raw[x]`data}
 atan2:{[y;x] u:atan[y%x]; ?[x<0.0;?[u>=0.0;u-22%7;u+22%7];u]}
@@ -9,14 +10,18 @@ getgenurl:{exec name!url from update `$name from curl[genurl][`en;`feeds]}
 if[not `urls in key `.;
  urls:getgenurl[],`bikeangelsleaderboard`bikeangelspoints!("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores")];
 getsysteminfo:{curl[urls[`system_information]]}
+norm:{((union/)cols each x)#/:x}
 getsystemalerts:{update "I"$alert_id, `$Type, "I"$station_ids, posixqtime last_updated from `alert_id`Type xcol curl[urls[`system_alerts]]`alerts}
-getstationinfo:{update "I"$station_id,`$short_name,`$rental_methods from curl[urls`station_information]`stations}
+getstationinfo:{update "I"$station_id,`$short_name,`$rental_methods from norm curl[urls`station_information]`stations}
+getstationinfo:.cache.init[`getstationinfo;getstationinfo;24t]
 getstationstatus:{update "I"$station_id,posixqtime last_reported from curl[urls`station_status]`stations}
+getstationstatus:.cache.init[`getstationstatus;getstationstatus;24t]
 getstationinfostatuspoints:{update points_en:points_map[points] from update 0^points from `station_id xasc (uj/)`station_id xkey/:(getstationinfo[];getstationstatus[];getbikeangelsstationpoints[])}
 getregions:{update "I"$region_id from curl[urls`system_regions]`regions}
 
 getbikeangelsleaderboard:{update `$user from curl_raw[urls`bikeangelsleaderboard]`leaderboard}
 getbikeangelsstationpoints:{update "I"$string station_id,`int$points from flip `station_id`points!(key;value)@\:curl_raw[urls`bikeangelspoints][`stations]}
+getbikeangelsstationpoints:.cache.init[`getbikeangelsstationpoints;getbikeangelsstationpoints;00:05t]
 points_map:0N -2 -1 0 1 2i!`none`take2`take1`none`return1`return2
 
 getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",getenv[`googleapikey]}
@@ -25,7 +30,9 @@ getgoogleuiurltotal:{[start;end;lat0;lon0;lat1;lon1] "https://www.google.com/map
 getdistance:{[url] sum raze[curl_raw[url][`routes][`legs][;`distance]]`value}
 if[not `gdcache in key `..;
  gdcache:enlist[4#0nf]!enlist 0nf];
-googledistance:{[lat0;lon0;lat1;lon1] {[lat0;lon0;lat1;lon1] if[not (lat0;lon0;lat1;lon1) in key gdcache;gdcache[(lat0;lon0;lat1;lon1)]:getdistance getgoogleurl[lat0;lon0;lat1;lon1]]; gdcache[(lat0;lon0;lat1;lon1)]}.' flip (lat0;lon0;lat1;lon1)}
+googledistance1:{[lat0;lon0;lat1;lon1] if[not (lat0;lon0;lat1;lon1) in key gdcache;gdcache[(lat0;lon0;lat1;lon1)]:getdistance getgoogleurl[lat0;lon0;lat1;lon1]]; gdcache[(lat0;lon0;lat1;lon1)]}
+googledistance1:.cache.init[`googledistance1;googledistance1;24t]
+googledistance:{[lat0;lon0;lat1;lon1] googledistance1 .' flip (lat0;lon0;lat1;lon1)}
 
 safeString:{$[type[x] in 0 98 99h;.z.s each x;type[x]=10h;x;string x]}
 htmltable:{"<table>\n",({"<tr>\n",raze[{"<th>",safeString[x],"</th>\n"}each cols x],"</tr>\n"}[x],raze {"<tr>\n",raze[{"<td>",safeString[x],"</td>\n"}each x],"</tr>\n"}each x),"</table>\n"}
@@ -72,6 +79,9 @@ get_routes:{[start_name;end_name]
   `points xdesc `total_distance xasc `points`start`station1`end`station2`total_distance`start_distance`end_distance`route xcols update total_distance:start_distance+end_distance from tbl2
  }
 
+/ get_routes:.cache.init[`get_routes;get_routes;00:00:10t]
+
+
 html_link:{[url;text] "<a href=\"",url,"\">",text,"</a>"}
 html_map:{"<iframe src=\"",x,"\" width=\"400\" height=\"300\" frameborder=\"0\" style=\"border:0\" allowfullscreen></iframe>"}
 
@@ -85,14 +95,19 @@ genmail:{[start;end]
   / select points,start:station1,end:station2,total_distance,start_distance,end_distance from r
  } 
 
+\d .log
+info:{-1@"INFO ",string[.z.i]," ",string[.z.Z]," :::: ",x;}
+\d .
+
+
 / web
 if[not `webenabled in key `.;
   webenabled:1b;
   .z.PH:.z.ph;
   h:{[str] "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\nContent-Length: ",string[count str],"\r\n\r\n",str};
   c:{str:"\n" sv read0 hsym x; h[str]};
-  logger:([]timestamp:();args:();result:());
-  .z.ph:{0N!x; r:$[any first[x]~/:(enlist["?"];"");h[get_geo[]];first[x] like "?genmail*";h value .h.uh 1 _ first x;.z.PH x]; `logger insert (.z.p;x;r); r}];
+  logger:([]timestamp:();user:();args:();result:());
+  .z.ph:{.log.info usr:-3!(.z.a;`$"." sv string `int$0x0 vs .z.a;.Q.host .z.a;.z.u;first x); 0N!enlist[.z.p],x; r:$[any first[x]~/:(enlist["?"];"");h[get_geo[]];first[x] like "?genmail*";h value .h.uh 1 _ first x;.z.PH x]; `logger insert (.z.p;usr;x;r); r}];
 
 translate:enlist[`]!enlist[(::)]
 translate[`js_get_routes_src]:{raze {"  if (document.getElementById(\"src_",x,"\").checked) {\n    src_val = \"`\" + document.getElementById(\"src_",x,"\").value;\n  }\n"}each string 1 _ key places}
