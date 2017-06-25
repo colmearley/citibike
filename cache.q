@@ -26,9 +26,11 @@ miss:{[name;params]
   record
  }
 
-\d .
-
-.cache.init:{[name;function;expiry]
+.cache.absoluteName:{[name] $[1~count ` vs name;` sv `.,name;name]}
+.cache.init:{[name;expiry]
+  function:value .cache.absoluteName name;
   .cache.create[name;function;expiry];
   .wrap.wrap[.cache.lookup;name]
  }
+
+\d .
