@@ -1,62 +1,39 @@
+\l utils.q
 \l cache.q
-curl_raw:{.j.k raze .Q.hg[hsym `$x]}
-curl:{curl_raw[x]`data}
-atan2:{[y;x] u:atan[y%x]; ?[x<0.0;?[u>=0.0;u-22%7;u+22%7];u]}
+\l math.q
 
-posixqtime:{`datetime$1970.01.01D+1000000000*`long$x}
-genurl:"https://gbfs.citibikenyc.com/gbfs/gbfs.json"
+generalUrl:"https://gbfs.citibikenyc.com/gbfs/gbfs.json"
+angelUrls:`bikeangelsleaderboard`bikeangelspoints!("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores")
+getGeneralUrls:{exec (`$name)!url from .utils.getJsonUrl[generalUrl][`data][`en;`feeds]}
+getGeneralUrlsC:.cache.init[`getGeneralUrls;24t]
+urls:{(getGeneralUrlsC[],angelUrls)[x]}
 
-getgenurl:{exec name!url from update `$name from curl[genurl][`en;`feeds]}
-if[not `urls in key `.;
- urls:getgenurl[],`bikeangelsleaderboard`bikeangelspoints!("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores")];
-getsysteminfo:{curl[urls[`system_information]]}
+getsysteminfo:{.utils.getJsonUrl[`system_information]`data}
 norm:{((union/)cols each x)#/:x}
-getsystemalerts:{update "I"$alert_id, `$Type, "I"$station_ids, posixqtime last_updated from `alert_id`Type xcol curl[urls[`system_alerts]]`alerts}
-getstationinfo:{update "I"$station_id,`$short_name,`$rental_methods from norm curl[urls`station_information]`stations}
-getstationinfo:.cache.init[`getstationinfo;getstationinfo;24t]
-getstationstatus:{update "I"$station_id,posixqtime last_reported from curl[urls`station_status]`stations}
-getstationstatus:.cache.init[`getstationstatus;getstationstatus;24t]
-getstationinfostatuspoints:{update points_en:points_map[points] from update 0^points from `station_id xasc (uj/)`station_id xkey/:(getstationinfo[];getstationstatus[];getbikeangelsstationpoints[])}
-getregions:{update "I"$region_id from curl[urls`system_regions]`regions}
+getsystemalerts:{update "I"$alert_id, `$Type, "I"$station_ids, .utils.posixqtime last_updated from `alert_id`Type xcol .utils.getJsonUrl[urls[`system_alerts]][`data;`alerts]}
+getStationInfo:{update "I"$station_id,`$short_name,`$rental_methods from norm .utils.getJsonUrl[urls`station_information][`data;`stations]}
+getStationInfoC:.cache.init[`getStationInfo;24t]
+getStationStatus:{update "I"$station_id,.utils.posixqtime last_reported from .utils.getJsonUrl[urls`station_status][`data;`stations]}
+getStationStatusC:.cache.init[`getStationStatus;24t]
+getStationInfoStatusPoints:{update points_en:points_map[points] from update 0^points from `station_id xasc (uj/)`station_id xkey/:(getStationInfoC[];getStationStatusC[];getBikeAngelsStationPointsC[])}
+getRegions:{update "I"$region_id from .utils.getJsonUrl[urls`system_regions][`data;`regions]}
 
-getbikeangelsleaderboard:{update `$user from curl_raw[urls`bikeangelsleaderboard]`leaderboard}
-getbikeangelsstationpoints:{update "I"$string station_id,`int$points from flip `station_id`points!(key;value)@\:curl_raw[urls`bikeangelspoints][`stations]}
-getbikeangelsstationpoints:.cache.init[`getbikeangelsstationpoints;getbikeangelsstationpoints;00:05t]
+getBikeAngelsLeaderboard:{update `$user from .utils.getJsonUrl[urls`bikeangelsleaderboard]`leaderboard}
+getBikeAngelsStationPoints:{update "I"$string station_id,`int$points from flip `station_id`points!(key;value)@\:.utils.getJsonUrl[urls`bikeangelspoints][`stations]}
+getBikeAngelsStationPointsC:.cache.init[`getBikeAngelsStationPoints;00:05t]
 points_map:0N -2 -1 0 1 2i!`none`take2`take1`none`return1`return2
 
 getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",getenv[`googleapikey]}
 getgoogleuiurl:{[lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&travelmode=walking"}
 getgoogleuiurltotal:{[start;end;lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[start 0],",",string[start 1],"&waypoints=",string[lat0],",",string[lon0],"|",string[lat1],",",string[lon1],"&destination=",string[end 0],",",string[end 1],"&travelmode=bicycling"}
-getdistance:{[url] sum raze[curl_raw[url][`routes][`legs][;`distance]]`value}
+getdistance:{[url] sum raze[.utils.getJsonUrl[url][`routes][`legs][;`distance]]`value}
 if[not `gdcache in key `..;
  gdcache:enlist[4#0nf]!enlist 0nf];
-googledistance1:{[lat0;lon0;lat1;lon1] if[not (lat0;lon0;lat1;lon1) in key gdcache;gdcache[(lat0;lon0;lat1;lon1)]:getdistance getgoogleurl[lat0;lon0;lat1;lon1]]; gdcache[(lat0;lon0;lat1;lon1)]}
-googledistance1:.cache.init[`googledistance1;googledistance1;24t]
-googledistance:{[lat0;lon0;lat1;lon1] googledistance1 .' flip (lat0;lon0;lat1;lon1)}
+googleDistance1:{[lat0;lon0;lat1;lon1] if[not (lat0;lon0;lat1;lon1) in key gdcache;gdcache[(lat0;lon0;lat1;lon1)]:getdistance getgoogleurl[lat0;lon0;lat1;lon1]]; gdcache[(lat0;lon0;lat1;lon1)]}
+googleDistance1C:.cache.init[`googleDistance1;24t]
+googledistance:{[lat0;lon0;lat1;lon1] googleDistance1C .' flip (lat0;lon0;lat1;lon1)}
 
-safeString:{$[type[x] in 0 98 99h;.z.s each x;type[x]=10h;x;string x]}
-htmltable:{"<table>\n",({"<tr>\n",raze[{"<th>",safeString[x],"</th>\n"}each cols x],"</tr>\n"}[x],raze {"<tr>\n",raze[{"<td>",safeString[x],"</td>\n"}each x],"</tr>\n"}each x),"</table>\n"}
-
-hav:{[lat1;lon1;lat2;lon2]
-  deg2rad:{x*(22%7)%180};
-  R:6371000; dLat:deg2rad[lat2-lat1]; dLon:deg2rad[lon2-lon1];
-  a:xexp[sin[dLat%2];2] + cos[deg2rad[lat1]] * cos[deg2rad[lat2]] * xexp[sin[dLon%2];2];
-  c:2 * atan2[sqrt[a];sqrt[1-a]];
-  d:R*c;
-  d
- }
-
-box_loc:{[lat;lon;dis]
-  R:6371000;
-  deg2rad:{((22%7)*x)%180};
-  rad2deg:{(180*x)%(22%7)};
-  lon1:lon - rad2deg[dis%R%cos[deg2rad[lat]]];
-  lon2:lon + rad2deg[dis%R%cos[deg2rad[lat]]];
-  lat1:lat + rad2deg[dis%R];
-  lat2:lat - rad2deg[dis%R];
-  ((lat1;lon1);(lat1;lon2);(lat2;lon1);(lat2;lon2))
- }
-manhattan_distance:{[lat1;lon1;lat2;lon2]  hav[lat1;lon1;lat2;lon1]+hav[lat1;lon1;lat1;lon2]}
+htmltable:{"<table>\n",({"<tr>\n",raze[{"<th>",.utils.safeString[x],"</th>\n"}each cols x],"</tr>\n"}[x],raze {"<tr>\n",raze[{"<td>",.utils.safeString[x],"</td>\n"}each x],"</tr>\n"}each x),"</table>\n"}
 
 places:enlist[`]!enlist[2#0nf]
 places[`work]:40.75255 -73.99008
@@ -70,17 +47,14 @@ favorites[`work]:"8 Ave & W 33 St"
 get_routes:{[start_name;end_name]
   $[type[start_name]=-11h;[start:places[start_name]];[start:start_name;start_name:`]];
   $[type[end_name]=-11h;[end:places[end_name]];[end:end_name;end_name:`]];
-  station_info:getstationinfostatuspoints[];
-  tbl1:select name,points,lat,lon,start_dis:?[name like favorites[start_name];0;hav[start 0;start 1] . (lat;lon)], end_dis:?[name like favorites[end_name];0;hav[end 0;end 1] . (lat;lon)] from station_info;
+  station_info:getStationInfoStatusPoints[];
+  tbl1:select name,points,lat,lon,start_dis:?[name like favorites[start_name];0;.math.hav[start 0;start 1] . (lat;lon)], end_dis:?[name like favorites[end_name];0;.math.hav[end 0;end 1] . (lat;lon)] from station_info;
   tbls:select station1:name,lat1:lat,lon1:lon,points1:points,start_dis from tbl1 where start_dis=(min;start_dis) fby points;
   tble:select station2:name,lat2:lat,lon2:lon,points2:points,end_dis from tbl1 where end_dis=(min;end_dis) fby points;
   tbl2:select from (update points:?[(points1>0) or (points2<0);0;abs[points1]+points2] from tbls cross tble) where (start_dis+end_dis)=(min;start_dis+end_dis) fby points;
   tbl2:select points,start:{[start;name;points;lat;lon] html_link[getgoogleuiurl[start 0;start 1;lat;lon];name," (",string[points],")"]}[start]'[station1;points1;lat1;lon1],station1,end:{[end;name;points;lat;lon] html_link[getgoogleuiurl[lat;lon;end 0;end 1];name," (",string[points],")"]}[end]'[station2;points2;lat2;lon2],station2,start_distance:googledistance[start 0;start 1;lat1;lon1],end_distance:googledistance[lat2;lon2;end 0;end 1],route:html_link[;"route"] each getgoogleuiurltotal[start;end]'[lat1;lon1;lat2;lon2] from tbl2;
   `points xdesc `total_distance xasc `points`start`station1`end`station2`total_distance`start_distance`end_distance`route xcols update total_distance:start_distance+end_distance from tbl2
  }
-
-/ get_routes:.cache.init[`get_routes;get_routes;00:00:10t]
-
 
 html_link:{[url;text] "<a href=\"",url,"\">",text,"</a>"}
 html_map:{"<iframe src=\"",x,"\" width=\"400\" height=\"300\" frameborder=\"0\" style=\"border:0\" allowfullscreen></iframe>"}
