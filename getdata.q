@@ -1,6 +1,8 @@
 \l utils.q
 \l cache.q
 \l math.q
+\l web.q
+\l data.q
 
 generalUrl:"https://gbfs.citibikenyc.com/gbfs/gbfs.json"
 angelUrls:`bikeangelsleaderboard`bikeangelspoints!("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores")
@@ -35,20 +37,13 @@ googledistance:{[lat0;lon0;lat1;lon1] googleDistance1C .' flip (lat0;lon0;lat1;l
 
 htmltable:{"<table>\n",({"<tr>\n",raze[{"<th>",.utils.safeString[x],"</th>\n"}each cols x],"</tr>\n"}[x],raze {"<tr>\n",raze[{"<td>",.utils.safeString[x],"</td>\n"}each x],"</tr>\n"}each x),"</table>\n"}
 
-places:enlist[`]!enlist[2#0nf]
-places[`work]:40.75255 -73.99008
-places[`home]:40.70919 -74.01329
-places[`1010]:40.75366 -73.97241
-places[`hd]:40.74185 -73.99142
-favorites:enlist[`]!enlist ""
-favorites[`home]:"South End Ave & Liberty St"
-favorites[`work]:"8 Ave & W 33 St"
-
+parseArg:@[{value .utils.safeString x};;`$]
 get_routes:{[start_name;end_name]
-  $[type[start_name]=-11h;[start:places[start_name]];[start:start_name;start_name:`]];
-  $[type[end_name]=-11h;[end:places[end_name]];[end:end_name;end_name:`]];
+  start_name:parseArg[start_name]; end_name:parseArg[end_name];
+  $[type[start_name]=-11h;[start:.data.places[start_name]];[start:start_name;start_name:`]];
+  $[type[end_name]=-11h;[end:.data.places[end_name]];[end:end_name;end_name:`]];
   station_info:getStationInfoStatusPoints[];
-  tbl1:select name,points,lat,lon,start_dis:?[name like favorites[start_name];0;.math.hav[start 0;start 1] . (lat;lon)], end_dis:?[name like favorites[end_name];0;.math.hav[end 0;end 1] . (lat;lon)] from station_info;
+  tbl1:select name,points,lat,lon,start_dis:?[name like .data.favorites[start_name];0;.math.hav[start 0;start 1] . (lat;lon)], end_dis:?[name like .data.favorites[end_name];0;.math.hav[end 0;end 1] . (lat;lon)] from station_info;
   tbls:select station1:name,lat1:lat,lon1:lon,points1:points,start_dis from tbl1 where start_dis=(min;start_dis) fby points;
   tble:select station2:name,lat2:lat,lon2:lon,points2:points,end_dis from tbl1 where end_dis=(min;end_dis) fby points;
   tbl2:select from (update points:?[(points1>0) or (points2<0);0;abs[points1]+points2] from tbls cross tble) where (start_dis+end_dis)=(min;start_dis+end_dis) fby points;
@@ -73,25 +68,6 @@ genmail:{[start;end]
 info:{-1@"INFO ",string[.z.i]," ",string[.z.Z]," :::: ",x;}
 \d .
 
+if[`web in key `;
+   if[not `initialized in key .web; .web.init[]]]
 
-/ web
-if[not `webenabled in key `.;
-  webenabled:1b;
-  .z.PH:.z.ph;
-  h:{[str] "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\nContent-Length: ",string[count str],"\r\n\r\n",str};
-  c:{str:"\n" sv read0 hsym x; h[str]};
-  logger:([]timestamp:();user:();args:();result:());
-  .z.ph:{.log.info usr:-3!(.z.a;`$"." sv string `int$0x0 vs .z.a;.Q.host .z.a;.z.u;first x); 0N!enlist[.z.p],x; r:$[any first[x]~/:(enlist["?"];"");h[get_geo[]];first[x] like "?genmail*";h value .h.uh 1 _ first x;.z.PH x]; `logger insert (.z.p;usr;x;r); r}];
-
-translate:enlist[`]!enlist[(::)]
-translate[`js_get_routes_src]:{raze {"  if (document.getElementById(\"src_",x,"\").checked) {\n    src_val = \"`\" + document.getElementById(\"src_",x,"\").value;\n  }\n"}each string 1 _ key places}
-translate[`js_get_routes_dest]:{raze {"  if (document.getElementById(\"dest_",x,"\").checked) {\n    dest_val = \"`\" + document.getElementById(\"dest_",x,"\").value;\n  }\n"}each string 1 _ key places}
-form_sources:{raze {" <input type=\"radio\" display=\"inline\" name=\"src\" id=\"src_",x,"\" value=\"",x,"\"><label for=\"src_",x,"\">",@[x;0;upper],"</label>\n"}each string 1 _ key places}
-form_dest:{raze {" <input type=\"radio\" display=\"inline\" name=\"dest\" id=\"dest_",x,"\" value=\"",x,"\"><label for=\"dest_",x,"\">",@[x;0;upper],"</label>\n"}each string 1 _ key places}
-translate[`nav]:{"<p>Choose Source:</p>\n<form id=\"sources\" display=\"inline\" action=\"\">",form_sources[],"<input type=\"radio\" name=\"src\" display=\"inline\" id=\"src_current_location\" value=\"current_location\" onClick=\"getCurrentLocation()\"><label for=\"src_current_location\">Current Location</label>\n</form>\n\n<p>Choose Destination:</p>\n<form name=\"dest\" display=\"inline\" action=\"\">",form_dest[],"<input type=\"radio\" name=\"dest\" display=\"inline\" id=\"dest_current_location\" value=\"current_location\" onClick=\"getCurrentLocation()\"><label for=\"dest_current_location\">Current Location</label>\n</form> <p><button id=\"get_routes_button\" onclick=\"getRoutes()\">GetRoutes</button></p>"}
-translate[`host]:{string[.z.h]}
-translate[`port]:{string system"p"}
-get_geo:{ssr[x;"#",string y;z[]]}/["\n" sv read0[`:geogen.html];1 _ key translate;1 _ value translate]
-
-/ alert location from address bar
-/ javascript:function getCurrentLocation() {navigator.geolocation.getCurrentPosition(showPosition)}; function showPosition(position){ alert(position.coords.latitude + ", " + position.coords.longitude)}; getCurrentLocation()

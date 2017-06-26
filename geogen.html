@@ -1,11 +1,22 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
+<meta http=equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewpoint" content="width = device-width, initial-scale = 1">
+<title>Citibike Angels Route Calculator</title>
+<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
 </head>
 <body>
-
-#nav
-
+<div class="container">
+<div class="nav">
+<p>Choose Source:</p>
+#form_src
+<p>Choose Destination:</p>
+#form_dest
+<p><button id="get_routes_button" onclick="getRoutes()">GetRoutes</button></p>
+</div>
 <div id="result_div">
 <iframe id="result_iframe" width=1000 height=600>
  <p>Your web browser does no support iframes</p>
@@ -21,8 +32,8 @@ function getCurrentLocation() {
 }
 
 function disableCurrentLocation(message) {
-  var radio  = document.getElementById("src_current_location");
-  var home  = document.getElementById("src_home");
+  var radio  = document.getElementById("source_current_location");
+  var home  = document.getElementById("source_home");
   radio.disabled = true;
   radio.labels[0].innerText = "Current Location is not available:'" + message + "'";
   radio.checked = false;
@@ -38,7 +49,7 @@ function disableCurrentLocation(message) {
 function radioPosition(position) {
   lat = position.coords.latitude.toPrecision(7);
   lon = position.coords.longitude.toPrecision(7); 
-  var radio  = document.getElementById("src_current_location");
+  var radio  = document.getElementById("source_current_location");
   radio.value = lat + ", " + lon;
   radio.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
   var radio_dest  = document.getElementById("dest_current_location");
@@ -65,30 +76,24 @@ function radioError(error) {
 
 function getRoutes(){
   console.log("getRoutes() start.");
-  var src_val = "`";
-  var dest_val = "`";
-  if (document.getElementById("src_current_location").checked) {
-    src_val = document.getElementById("src_current_location").value;
-  }
-  if (document.getElementById("dest_current_location").checked) {
-    dest_val = document.getElementById("dest_current_location").value;
-  }
+  var source_val = "";
+  var dest_val = "";
 
 #js_get_routes_src
 
 #js_get_routes_dest
 
-  if (src_val == "`") {
+  if (source_val == "") {
     alert("Please Choose a Source.");
   }
-  else if (dest_val == "`") {
+  else if (dest_val == "") {
     alert("Please Choose a Destination.");
   }
   else {
     console.log("loading routes");
-    console.log("src:"+src_val+" dest:"+dest_val);
+    console.log("src:"+source_val+" dest:"+dest_val);
     var res = document.getElementById("result_div");
-    res.innerHTML = '<iframe src=\"?genmail[' + src_val + ';' + dest_val + ']\" width=1000 height=600/>';
+    res.innerHTML = '<iframe src=\"?genmail[&quot;' + source_val + '&quot;;&quot;' + dest_val + '&quot;]\" width=1000 height=600/>';
   }
 
  console.log("getRoutes() end.");
@@ -96,6 +101,5 @@ function getRoutes(){
 }
 
 </script>
-
 </body>
 </html>
