@@ -33,17 +33,17 @@ function getCurrentLocation() {
 
 function disableCurrentLocation(message) {
   var radio  = document.getElementById("source_current_location");
-  var home  = document.getElementById("source_home");
+  var form_source  = document.getElementById("form_source");
   radio.disabled = true;
   radio.labels[0].innerText = "Current Location is not available:'" + message + "'";
   radio.checked = false;
-  home.checked = true;
+  form_source.elements[0].checked = true;
   var radio_dest  = document.getElementById("dest_current_location");
-  var home_dest  = document.getElementById("dest_home");
+  var form_dest  = document.getElementById("form_dest");
   radio_dest.disabled = true;
   radio_dest.labels[0].innerText = "Current Location is not available:'" + message + "'";
   radio_dest.checked = false;
-  home_dest.checked = true;
+  form_dest.elements[0].checked = true;
 }
 
 function radioPosition(position) {

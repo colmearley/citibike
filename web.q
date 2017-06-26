@@ -23,7 +23,7 @@ makeJsCheckLoc:{[id;name] "if (document.getElementById(\"",.utils.safeString[id]
 makeJsCheckLocs:{[id] "\n" sv makeJsCheckLoc[id] each key .data.places}
 makeLocationButton:{[id;name;attributes] "<input type=\"radio\" display=\"inline\" name=\"",.utils.safeString[id],"\" id=\"",.utils.safeString[id],"_",{ssr[lower x;" ";"_"]}[.utils.safeString[name]],"\" value=\"",.utils.safeString[name],"\" ",(" " sv {string[x],"=\"",.utils.safeString[y],"\""}'[key attributes;value attributes]),"><label for=\"",.utils.safeString[id],"_",{ssr[lower x;" ";"_"]}[.utils.safeString[name]],"\">",{@[x;where 1b,1_prev " "=x;upper]}[.utils.safeString[name]],"</label>"}
 makeLocationButtons:{[id] "\n" sv makeLocationButton[id;;()!()]each key .data.places}
-makeLocationForm:{[id] "<form name=\"",.utils.safeString[id],"s\" display=\"inline\" action=\"\">",makeLocationButtons[id],"\n",makeLocationButton[id;"current location";enlist[`onclick]!enlist["getCurrentLocation()"]],"\n</form>"}
+makeLocationForm:{[id] "<form name=\"",.utils.safeString[id],"s\" id=\"form_",.utils.safeString[id],"\" display=\"inline\" action=\"\">\n",makeLocationButtons[id],"\n",makeLocationButton[id;"current location";enlist[`onclick]!enlist["getCurrentLocation()"]],"\n</form>"}
 
 / methods for translating html tags
 translate:(`symbol$())!()
