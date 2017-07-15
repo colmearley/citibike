@@ -1,4 +1,5 @@
 \l utils.q
+\l cron.q
 \l cache.q
 \l math.q
 \l web.q
@@ -16,13 +17,13 @@ getsystemalerts:{update "I"$alert_id, `$Type, "I"$station_ids, .utils.posixqtime
 getStationInfo:{update "I"$station_id,`$short_name,`$rental_methods from norm .utils.getJsonUrl[urls`station_information][`data;`stations]}
 getStationInfoC:.cache.init[`getStationInfo;24t]
 getStationStatus:{update "I"$station_id,.utils.posixqtime last_reported from .utils.getJsonUrl[urls`station_status][`data;`stations]}
-getStationStatusC:.cache.init[`getStationStatus;24t]
+getStationStatusC:.cache.init[`getStationStatus;00:01t]
 getStationInfoStatusPoints:{update points_en:points_map[points] from update 0^points from `station_id xasc (uj/)`station_id xkey/:(getStationInfoC[];getStationStatusC[];getBikeAngelsStationPointsC[])}
 getRegions:{update "I"$region_id from .utils.getJsonUrl[urls`system_regions][`data;`regions]}
 
 getBikeAngelsLeaderboard:{update `$user from .utils.getJsonUrl[urls`bikeangelsleaderboard]`leaderboard}
 getBikeAngelsStationPoints:{update "I"$string station_id,`int$points from flip `station_id`points!(key;value)@\:.utils.getJsonUrl[urls`bikeangelspoints][`stations]}
-getBikeAngelsStationPointsC:.cache.init[`getBikeAngelsStationPoints;00:05t]
+getBikeAngelsStationPointsC:.cache.init[`getBikeAngelsStationPoints;00:01t]
 points_map:0N -2 -1 0 1 2i!`none`take2`take1`none`return1`return2
 
 getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",getenv[`googleapikey]}
