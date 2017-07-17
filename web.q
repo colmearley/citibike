@@ -16,7 +16,7 @@ logHandler:{[args]
   result
  }
 
-index:{{ssr[x;"#",string y;z[]]}/["\n" sv read0[`:geogen.html];key translate;value translate]}
+index:{{ssr[x;"#",string y;z[]]}/["\n" sv read0[`:../geogen.html];key translate;value translate]}
 
 / methods for generating js form and buttons for choosing source and destination
 makeJsCheckLoc:{[id;name] "if (document.getElementById(\"",.utils.safeString[id],"_",.utils.safeString[name],"\").checked) {\n ",.utils.safeString[id],"_val = document.getElementById(\"",.utils.safeString[id],"_",.utils.safeString[name],"\").value;\n}\n"}

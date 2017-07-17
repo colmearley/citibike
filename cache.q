@@ -21,15 +21,27 @@ lookup:{[name;params]
 
 box:{$[type[x]~0h;x;.z.s enlist x]}
 persist:{[name;params;record]
-  .[`:cache_db;();,;([]timestamp:.z.p;init:.z.p;name:name;params:box params;val:box record`val;expiration:record`expiration)];
-  system"l cache_db";
-  compress_db[];
- }
-
-compress_db:{
-  compressed:`timestamp`expiration xasc cols[`..cache_db]#() xkey select timestamp:last timestamp,init:first timestamp,last expiration,first val by name,params,chg:({sums differ x};val) fby ([]name;params) from `timestamp`expiration xasc select from `..cache_db;
-  .[`:cache_db;();:;compressed];
-  system"l cache_db";
+  row:.Q.en[`:.]enlist r:`timestamp`init`name`params`val`expiration!(.z.p;.z.p;name;box params;box record`val;record`expiration);
+  idx:exec first i from select i from `..cache_db where name=r[`name],params~\:r[`params],i=max i,val~\:r[`val];
+  $[not null idx; [ / upsert 
+                   -1@"INFO ",string[.z.p]," :: upserting to cache_db :: name:'",string[name],"'";
+                   @[`:cache_db/timestamp;(),idx;:;row`timestamp];
+                   @[`:cache_db/expiration;(),idx;:;row`expiration]
+                  ];
+                  [ / append
+                   -1@"INFO ",string[.z.p]," :: appending to cache_db :: name:'",string[name],"'"; 
+                   / remove params and val from .d
+                   `:cache_db/.d set get[`:cache_db/.d] except `params`val;
+                   / append new data to regular columns
+                   .[`:cache_db/;();,;delete params,val from row];
+                   / append new data to params and val
+                   .[`:cache_db/params;();,;row`params];
+                   .[`:cache_db/val;();,;row`val];
+                   / add params and val to .d
+                   `:cache_db/.d set get[`:cache_db/.d],`params`val
+                  ]
+   ];
+  system"l .";
  }
 
 refresh_db:{
@@ -53,3 +65,4 @@ miss:{[name;params]
 
 \d .
 .cron.add[".cache.refresh_db[]";0p;0D00:00:01];
+system"l db"

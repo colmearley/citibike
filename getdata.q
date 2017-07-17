@@ -1,9 +1,9 @@
 \l utils.q
 \l cron.q
-\l cache.q
 \l math.q
 \l web.q
 \l data.q
+\l cache.q
 
 generalUrl:"https://gbfs.citibikenyc.com/gbfs/gbfs.json"
 angelUrls:`bikeangelsleaderboard`bikeangelspoints!("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores")
@@ -18,7 +18,7 @@ getStationInfo:{update "I"$station_id,`$short_name,`$rental_methods from norm .u
 getStationInfoC:.cache.init[`getStationInfo;24t]
 getStationStatus:{update "I"$station_id,.utils.posixqtime last_reported from .utils.getJsonUrl[urls`station_status][`data;`stations]}
 getStationStatusC:.cache.init[`getStationStatus;00:01t]
-getStationInfoStatusPoints:{update points_en:points_map[points] from update 0^points from `station_id xasc (uj/)`station_id xkey/:(getStationInfoC[];getStationStatusC[];getBikeAngelsStationPointsC[])}
+getStationInfoStatusPoints:{select from (update points_en:points_map[points] from update 0^points from `station_id xasc (uj/)`station_id xkey/:(getStationInfoC[];getStationStatusC[];getBikeAngelsStationPointsC[])) where not null lat,not null lon}
 getRegions:{update "I"$region_id from .utils.getJsonUrl[urls`system_regions][`data;`regions]}
 
 getBikeAngelsLeaderboard:{update `$user from .utils.getJsonUrl[urls`bikeangelsleaderboard]`leaderboard}
@@ -57,12 +57,10 @@ html_map:{"<iframe src=\"",x,"\" width=\"400\" height=\"300\" frameborder=\"0\" 
 
 genmail:{[start;end]
   r:get_routes[start;end];
-  x:htmltable select points,start,end,total_distance,start_distance,end_distance,route from r;
+  x:htmltable select points,total_distance,start,end,start_distance,end_distance,route from r;
   header:"\"Citibike Angel Routes\nContent-Type: text/html\nMIME-Version: 1.0\nContent-Disposition: inline\n\"";
   html:"<html>\n<head><title>Citibike Angel Routes :: ",(-3!start)," to ",(-3!end),"</title></head>\n<body>\n<p>Citibike Angel Routes :: ",(-3!start)," to ",(-3!end),"</p>\n",x,"</body>\n</html>\n";
-  / system"echo '",html,"'|mail -s ",header," ",getenv[`email];
   html
-  / select points,start:station1,end:station2,total_distance,start_distance,end_distance from r
  } 
 
 \d .log
