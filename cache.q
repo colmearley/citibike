@@ -23,25 +23,28 @@ box:{$[type[x]~0h;x;.z.s enlist x]}
 persist:{[name;params;record]
   row:.Q.en[`:.]enlist r:`timestamp`init`name`params`val`expiration!(.z.p;.z.p;name;box params;box record`val;record`expiration);
   idx:exec first i from select i from `..cache_db where name=r[`name],params~\:r[`params],i=max i,val~\:r[`val];
-  $[not null idx; [ / upsert 
+  $[not null idx; [ / upsert
                    -1@"INFO ",string[.z.p]," :: upserting to cache_db :: name:'",string[name],"'";
-                   @[`:cache_db/timestamp;(),idx;:;row`timestamp];
-                   @[`:cache_db/expiration;(),idx;:;row`expiration]
+                   {[tpath;idx;colName;data] @[` sv tpath,colName;(),idx;:;data]}[`:cache_db;idx]'[`timestamp`expiration;row`timestamp`expiration]
                   ];
                   [ / append
-                   -1@"INFO ",string[.z.p]," :: appending to cache_db :: name:'",string[name],"'"; 
-                   / remove params and val from .d
-                   `:cache_db/.d set get[`:cache_db/.d] except `params`val;
-                   / append new data to regular columns
-                   .[`:cache_db/;();,;delete params,val from row];
-                   / append new data to params and val
-                   .[`:cache_db/params;();,;row`params];
-                   .[`:cache_db/val;();,;row`val];
-                   / add params and val to .d
-                   `:cache_db/.d set get[`:cache_db/.d],`params`val
+                   -1@"INFO ",string[.z.p]," :: appending to cache_db :: name:'",string[name],"'";
+                   saveTable[`:.;`cache_db;,;row];
                   ]
    ];
   system"l .";
+ }
+
+saveTable:{[db;tableName;method;table]
+  tpath:` sv db,tableName; table:.Q.en[db]table;
+  $[count genCols:where 0h=type each flip table;
+           [tdpath set (origtd:get[tdpath:` sv tpath,`.d]) except genCols; / remove params and val from .d
+            .[tpath;();method;![table;();0b;genCols]]; / append new data to regular columns
+            {[tpath;method;colName;data] .[` sv tpath,colName;();method;data]}[tpath;method]'[genCols;table[genCols]]; / append new data for list columns
+            tdpath set origtd
+           ];
+           .[tpath;();method;table]
+   ];
  }
 
 refresh_db:{
