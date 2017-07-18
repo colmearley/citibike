@@ -6,24 +6,24 @@
 \l cache.q
 
 generalUrl:"https://gbfs.citibikenyc.com/gbfs/gbfs.json"
-angelUrls:`bikeangelsleaderboard`bikeangelspoints!("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores")
-getGeneralUrls:{exec (`$name)!url from .utils.getJsonUrl[generalUrl][`data][`en;`feeds]}
-getGeneralUrlsC:.cache.init[`getGeneralUrls;24t]
-urls:{(getGeneralUrlsC[],angelUrls)[x]}
+angelUrls:([name:`bikeangelsleaderboard`bikeangelspoints] url:("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores"))
+getGeneralUrls:{select last url by `$name from .utils.getJsonUrl[generalUrl][`data][`en;`feeds]}
+getGeneralUrlsC:.cache.init[`getGeneralUrls;24t;`name]
+urls:{(getGeneralUrlsC[],angelUrls)[x;`url]}
 
 getsysteminfo:{.utils.getJsonUrl[`system_information]`data}
 norm:{((union/)cols each x)#/:x}
 getsystemalerts:{update "I"$alert_id, `$Type, "I"$station_ids, .utils.posixqtime last_updated from `alert_id`Type xcol .utils.getJsonUrl[urls[`system_alerts]][`data;`alerts]}
 getStationInfo:{update "I"$station_id,`$short_name,`$rental_methods from norm .utils.getJsonUrl[urls`station_information][`data;`stations]}
-getStationInfoC:.cache.init[`getStationInfo;24t]
+getStationInfoC:.cache.init[`getStationInfo;24t;`station_id]
 getStationStatus:{update "I"$station_id,.utils.posixqtime last_reported from .utils.getJsonUrl[urls`station_status][`data;`stations]}
-getStationStatusC:.cache.init[`getStationStatus;00:01t]
+getStationStatusC:.cache.init[`getStationStatus;00:01t;`station_id]
 getStationInfoStatusPoints:{select from (update points_en:points_map[points] from update 0^points from `station_id xasc (uj/)`station_id xkey/:(getStationInfoC[];getStationStatusC[];getBikeAngelsStationPointsC[])) where not null lat,not null lon}
 getRegions:{update "I"$region_id from .utils.getJsonUrl[urls`system_regions][`data;`regions]}
 
 getBikeAngelsLeaderboard:{update `$user from .utils.getJsonUrl[urls`bikeangelsleaderboard]`leaderboard}
 getBikeAngelsStationPoints:{update "I"$string station_id,`int$points from flip `station_id`points!(key;value)@\:.utils.getJsonUrl[urls`bikeangelspoints][`stations]}
-getBikeAngelsStationPointsC:.cache.init[`getBikeAngelsStationPoints;00:01t]
+getBikeAngelsStationPointsC:.cache.init[`getBikeAngelsStationPoints;00:01t;`station_id]
 points_map:0N -2 -1 0 1 2i!`none`take2`take1`none`return1`return2
 
 getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",getenv[`googleapikey]}
@@ -33,7 +33,7 @@ getdistance:{[url] sum raze[.utils.getJsonUrl[url][`routes][`legs][;`distance]]`
 if[not `gdcache in key `..;
  gdcache:enlist[4#0nf]!enlist 0nf];
 googleDistance1:{[lat0;lon0;lat1;lon1] if[not (lat0;lon0;lat1;lon1) in key gdcache;gdcache[(lat0;lon0;lat1;lon1)]:getdistance getgoogleurl[lat0;lon0;lat1;lon1]]; gdcache[(lat0;lon0;lat1;lon1)]}
-googleDistance1C:.cache.init[`googleDistance1;24t]
+googleDistance1C:.cache.init[`googleDistance1;24t;()]
 googledistance:{[lat0;lon0;lat1;lon1] googleDistance1C .' flip (lat0;lon0;lat1;lon1)}
 
 htmltable:{"<table>\n",({"<tr>\n",raze[{"<th>",.utils.safeString[x],"</th>\n"}each cols x],"</tr>\n"}[x],raze {"<tr>\n",raze[{"<td>",.utils.safeString[x],"</td>\n"}each x],"</tr>\n"}each x),"</table>\n"}
