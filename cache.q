@@ -68,7 +68,7 @@ saveTable:{[db;tableName;method;table]
 
 refresh_db:{
   if[not `cache_db in key `.;:()];
-  exec {.[`$string[x],"C";y]}'[name;params] from select from `..cache_db where i=(max;i) fby ([]name;params),.z.p>expiration
+  exec {.[`$string[x],"C";y]}'[name;params] from `..cache_db where timestamp>=.z.d-1,i=(max;i) fby ([]name;params),.z.p>expiration
  }
 
 miss:{[name;params]
