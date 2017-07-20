@@ -48,21 +48,44 @@ get_routes:{[start_name;end_name]
   tbls:select station1:name,lat1:lat,lon1:lon,points1:points,start_dis from tbl1 where start_dis=(min;start_dis) fby points;
   tble:select station2:name,lat2:lat,lon2:lon,points2:points,end_dis from tbl1 where end_dis=(min;end_dis) fby points;
   tbl2:select from (update points:?[(points1>0) or (points2<0);0;abs[points1]+points2] from tbls cross tble) where (start_dis+end_dis)=(min;start_dis+end_dis) fby points;
-  tbl2:select points,start:{[start;name;points;lat;lon] html_link[getgoogleuiurl[start 0;start 1;lat;lon];name," (",string[points],")"]}[start]'[station1;points1;lat1;lon1],station1,end:{[end;name;points;lat;lon] html_link[getgoogleuiurl[lat;lon;end 0;end 1];name," (",string[points],")"]}[end]'[station2;points2;lat2;lon2],station2,start_distance:googledistance[start 0;start 1;lat1;lon1],end_distance:googledistance[lat2;lon2;end 0;end 1],route:html_link[;"route"] each getgoogleuiurltotal[start;end]'[lat1;lon1;lat2;lon2] from tbl2;
-  `points xdesc `total_distance xasc `points`start`station1`end`station2`total_distance`start_distance`end_distance`route xcols update total_distance:start_distance+end_distance from tbl2
+  tbl2:select points,
+              start_route:getgoogleuiurl[start 0;start 1]'[lat1;lon1],
+              start_name:{[name;points] name," (",string[points],")"}'[station1;points1],
+              station1,
+              end_route:getgoogleuiurl[;;end 0;end 1]'[lat2;lon2],
+              end_name:{[name;points] name," (",string[points],")"}'[station2;points2],
+              station2,
+              start_distance:googledistance[start 0;start 1;lat1;lon1],
+              end_distance:googledistance[lat2;lon2;end 0;end 1],
+              route:getgoogleuiurltotal[start;end]'[lat1;lon1;lat2;lon2] from tbl2;
+  `points xdesc update total_distance:start_distance+end_distance from tbl2
+ }
+get_html_routes:{[start;end]
+  select points,
+         start:html_link'[start_route;start_name],
+         station1,
+         end:html_link'[end_route;end_name],
+         station2,
+         start_distance,
+         end_distance,
+         route:html_link[;"route"]'[route],
+         total_distance from get_routes[start;end]
  }
 
 html_link:{[url;text] "<a href=\"",url,"\">",text,"</a>"}
 html_map:{"<iframe src=\"",x,"\" width=\"400\" height=\"300\" frameborder=\"0\" style=\"border:0\" allowfullscreen></iframe>"}
 
 genmail:{[start;end]
-  r:get_routes[start;end];
+  r:get_html_routes[start;end];
   x:htmltable select points,total_distance,start,end,start_distance,end_distance,route from r;
   header:"\"Citibike Angel Routes\nContent-Type: text/html\nMIME-Version: 1.0\nContent-Disposition: inline\n\"";
   html:"<html>\n<head><title>Citibike Angel Routes :: ",(-3!start)," to ",(-3!end),"</title></head>\n<body>\n<p>Citibike Angel Routes :: ",(-3!start)," to ",(-3!end),"</p>\n",x,"</body>\n</html>\n";
   html
  } 
 
+get_json_routes:{[start;end]
+  .j.j get_routes[start;end]
+ }
 \d .log
 info:{-1@"INFO ",string[.z.i]," ",string[.z.Z]," :::: ",x;}
 \d .

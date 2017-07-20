@@ -5,98 +5,181 @@
 <meta http=equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewpoint" content="width = device-width, initial-scale = 1">
 <title>Citibike Angels Route Calculator</title>
-<link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
+
+<!-- Latest compiled and minified CSS -->
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+  <script>
+      let app = angular.module('app', []);
+      app.controller("Ctrl", function($scope, $http){
+        $scope.foo = function(start, end) {
+          console.log("hello")
+          $http({
+              method: 'GET',
+              url: 'https://earls.qhigh.com:3001/?get_json_routes["' + start + '";"' + end + '"]'
+            }).then(function successCallback(response) {
+                console.log(response);
+                $scope.arr = response.data;
+              }, function errorCallback(response) {
+                // called asynchronously if an error occurs
+                // or server returns response with an error status.
+              });
+        }
+      });
+    </script>
+
 
 </head>
-<body>
+<body ng-app="app">
+  <div ng-controller="Ctrl">
+    Angular version: {{version.full}}
+    <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Points</th>
+          <th>Total Distance</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Start Distance</th>
+          <th>End Distance</th>
+          <th>Route</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="item in arr">
+          <td>{{item.points}}</td>
+          <td>{{item.total_distance}}</td>
+          <td><a ng-href={{item.start_route}}>{{item.start_name}}</a></td>
+          <td><a ng-href={{item.end_route}}>{{item.end_name}}</a></td>
+          <td>{{item.start_distance}}</td>
+          <td>{{item.end_distance}}</td>
+          <td><a ng-href={{item.route}}>route</a></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+      <form>
+        <button ng-click="foo()">Go</button>
+      </form>
+    </div>
+
+
 <div class="container">
 <div class="nav">
 <p>Choose Source:</p>
 #form_src
 <p>Choose Destination:</p>
 #form_dest
-<p><button id="get_routes_button" onclick="getRoutes()">GetRoutes</button></p>
 </div>
-<div id="result_div">
-<iframe id="result_iframe" width=1000 height=600>
- <p>Your web browser does no support iframes</p>
-</iframe>
-</div>
+
+  <div ng-controller="Ctrl">
+    <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Points</th>
+          <th>Total Distance</th>
+          <th>Start</th>
+          <th>End</th>
+          <th>Start Distance</th>
+          <th>End Distance</th>
+          <th>Route</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="item in arr">
+          <td>{{item.points}}</td>
+          <td>{{item.total_distance}}</td>
+          <td><a ng-href={{item.start_route}}>{{item.start_name}}</a></td>
+          <td><a ng-href={{item.end_route}}>{{item.end_name}}</a></td>
+          <td>{{item.start_distance}}</td>
+          <td>{{item.end_distance}}</td>
+          <td><a ng-href={{item.route}}>route</a></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+      <form>
+        <button id="get_routes_button" ng-click="getRoutes()">GetRoutes</button>
+      </form>
+    </div>
+
 <script>
 function getCurrentLocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(radioPosition, radioError);
-  } else {
-    disableCurrentLocation("Location information not supported.")
-  }
+	if (navigator.geolocation) {
+		navigator.geolocation.getCurrentPosition(radioPosition, radioError);
+	} else {
+		disableCurrentLocation("Location information not supported.")
+	}
 }
 
 function disableCurrentLocation(message) {
-  var radio  = document.getElementById("source_current_location");
-  var form_source  = document.getElementById("form_source");
-  radio.disabled = true;
-  radio.labels[0].innerText = "Current Location is not available:'" + message + "'";
-  radio.checked = false;
-  form_source.elements[0].checked = true;
-  var radio_dest  = document.getElementById("dest_current_location");
-  var form_dest  = document.getElementById("form_dest");
-  radio_dest.disabled = true;
-  radio_dest.labels[0].innerText = "Current Location is not available:'" + message + "'";
-  radio_dest.checked = false;
-  form_dest.elements[0].checked = true;
+	var radio  = document.getElementById("source_current_location");
+	var form_source  = document.getElementById("form_source");
+	radio.disabled = true;
+	radio.labels[0].innerText = "Current Location is not available:'" + message + "'";
+	radio.checked = false;
+	form_source.elements[0].checked = true;
+	var radio_dest  = document.getElementById("dest_current_location");
+	var form_dest  = document.getElementById("form_dest");
+	radio_dest.disabled = true;
+	radio_dest.labels[0].innerText = "Current Location is not available:'" + message + "'";
+	radio_dest.checked = false;
+	form_dest.elements[0].checked = true;
 }
 
 function radioPosition(position) {
-  lat = position.coords.latitude.toPrecision(7);
-  lon = position.coords.longitude.toPrecision(7); 
-  var radio  = document.getElementById("source_current_location");
-  radio.value = lat + ", " + lon;
-  radio.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
-  var radio_dest  = document.getElementById("dest_current_location");
-  radio_dest.value = lat + ", " + lon;
-  radio_dest.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
+	lat = position.coords.latitude.toPrecision(7);
+	lon = position.coords.longitude.toPrecision(7); 
+	var radio  = document.getElementById("source_current_location");
+	radio.value = lat + ", " + lon;
+	radio.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
+	var radio_dest  = document.getElementById("dest_current_location");
+	radio_dest.value = lat + ", " + lon;
+	radio_dest.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
 }
 
 function radioError(error) {
-  switch(error.code) {
-    case error.PERMISSION_DENIED:
-      disableCurrentLocation("Permission Denied")
-        break;
-    case error.POSITION_UNAVAILABLE:
-      disableCurrentLocation("Position Unavailable")
-        break;
-    case error.TIMEOUT:
-      disableCurrentLocation("Timeout")
-        break;
-    case error.UNKNOWN_ERROR:
-      disableCurrentLocation("Unknown Error")
-        break;
-  }
+	switch(error.code) {
+		case error.PERMISSION_DENIED:
+			disableCurrentLocation("Permission Denied")
+				break;
+		case error.POSITION_UNAVAILABLE:
+			disableCurrentLocation("Position Unavailable")
+				break;
+		case error.TIMEOUT:
+			disableCurrentLocation("Timeout")
+				break;
+		case error.UNKNOWN_ERROR:
+			disableCurrentLocation("Unknown Error")
+				break;
+	}
 }
 
 function getRoutes(){
-  console.log("getRoutes() start.");
-  var source_val = "";
-  var dest_val = "";
+	console.log("getRoutes() start.");
+	var source_val = "";
+	var dest_val = "";
 
 #js_get_routes_src
 
 #js_get_routes_dest
 
-  if (source_val == "") {
-    alert("Please Choose a Source.");
-  }
-  else if (dest_val == "") {
-    alert("Please Choose a Destination.");
-  }
-  else {
-    console.log("loading routes");
-    console.log("src:"+source_val+" dest:"+dest_val);
-    var res = document.getElementById("result_div");
-    res.innerHTML = '<iframe src=\"?genmail[&quot;' + source_val + '&quot;;&quot;' + dest_val + '&quot;]\" width=1000 height=600/>';
-  }
+	if (source_val == "") {
+		alert("Please Choose a Source.");
+	}
+	else if (dest_val == "") {
+		alert("Please Choose a Destination.");
+	}
+	else {
+		console.log("loading routes");
+		console.log("src:"+source_val+" dest:"+dest_val);
+		foo(source_val, dest_val);
+	}
 
- console.log("getRoutes() end.");
+	console.log("getRoutes() end.");
 
 }
 

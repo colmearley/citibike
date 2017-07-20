@@ -2,13 +2,16 @@
 
 init:{
   initialized:1b;
-  zph:.z.ph;
+  zph::.z.ph;
   .web.log:([]timestamp:();ip:();hostname:();user:();args:();result:());
   .z.ph:.web.logHandler;
  }
 
-header:{[html] "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nConnection: Keep-Alive\r\nContent-Length: ",string[count html],"\r\n\r\n",html}
-customHandler:{$[any first[x]~/:(enlist["?"];"");header[index[]];first[x] like "?genmail*";header value .h.uh 1 _ first x;zph x]}
+header:{[contentType;content] "HTTP/1.1 200 OK\r\nContent-Type: ",contentType,"\r\nConnection: Keep-Alive\r\nContent-Length: ",string[count content],"\r\n\r\n",content}
+customHandler:{$[any first[x]~/:(enlist["?"];"");header["text/html"] index[];
+                first[x] like "?genmail*";       header["text/html"] value .h.uh 1 _ first x;
+                first[x] like "?get_json_routes*"; header["application/json"] value 1_ first[x];
+                .web.zph x]}
 logHandler:{[args]
   idx:`.web.log insert (.z.p;`$"." sv string `int$0x0 vs .z.a;.z.u;.Q.host .z.a;args;());
   result:@[customHandler;args;{"fail: '",(x),"'"}];
