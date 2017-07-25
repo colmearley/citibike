@@ -83,9 +83,8 @@ genmail:{[start;end]
   html
  } 
 
-get_json_routes:{[start;end]
-  .j.j get_routes[start;end]
- }
+get_json_routes:{[start;end] .j.j get_routes[start;end]}
+get_json_places:{[] .j.j ([]name:key .data.places)}
 \d .log
 info:{-1@"INFO ",string[.z.i]," ",string[.z.Z]," :::: ",x;}
 \d .
