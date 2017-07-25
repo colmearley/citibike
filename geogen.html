@@ -12,19 +12,23 @@
 
   <script>
   let app = angular.module('app', []);
-  app.controller("Ctrl", function($scope, $http){
-    $scope.foo = function(start, end) {
-      console.log("hello")
-      $http({
-        method: 'GET',
-        url: 'https://earls.qhigh.com:3001/?get_json_routes["' + start + '";"' + end + '"]'
-      }).then(function successCallback(response) {
-        console.log(response);
-        $scope.arr = response.data;
-      }, function errorCallback(response) {
-                // called asynchronously if an error occurs
-                // or server returns response with an error status.
-              });
+  app.controller("Ctrl", function($scope, $http) {
+    $scope.routes = {};
+    $scope.places = {};
+    $scope.get_places = function() {
+      $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_places[]' }
+           ).then(function successCallback(response) { $scope.places = response.data; },
+                  function errorCallback(response) { });
+    };
+    $scope.get_routes = function(start, end) {
+      var source_val = "";
+      var dest_val = "";
+      if (source_val == "") { alert("Please Choose a Source."); }
+      else if (dest_val == "") { alert("Please Choose a Destination."); }
+      else { $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_routes["' + souce_val + '";"' + dest_val + '"]' }
+             ).then(function successCallback(response) { console.log(response); $scope.routes = response.data; },
+                  function errorCallback(response) { });
+           }
     }
   });
   </script>
@@ -33,47 +37,27 @@
 </head>
 <body ng-app="app">
   <div ng-controller="Ctrl">
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Points</th>
-            <th>Total Distance</th>
-            <th>Start</th>
-            <th>End</th>
-            <th>Start Distance</th>
-            <th>End Distance</th>
-            <th>Route</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr ng-repeat="item in arr">
-            <td>{{item.points}}</td>
-            <td>{{item.total_distance}}</td>
-            <td><a ng-href={{item.start_route}}>{{item.start_name}}</a></td>
-            <td><a ng-href={{item.end_route}}>{{item.end_name}}</a></td>
-            <td>{{item.start_distance}}</td>
-            <td>{{item.end_distance}}</td>
-            <td><a ng-href={{item.route}}>route</a></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <form>
-      <button ng-click="foo()">Go</button>
-    </form>
-  </div>
-
-
-  <div class="container">
-    <div class="nav">
-      <p>Choose Source:</p>
-      #form_src
+    <div class="container">
+      <div class="nav" ng-init="get_places()">
+        <p>Choose Source:</p>
+        <div class="btn-group" data-toggle="buttons">
+          <form>
+            <label class="btn btn-primary"><input type="radio" name="source" id="source_current_location">Current Location</label>
+            <label class="btn btn-primary" ng-repeat="item in places"><input type="radio" name="source" id="{{item.name}}">{{item.name}}</label>
+          </form>
+        </div>
       <p>Choose Destination:</p>
-      #form_dest
+        <div class="btn-group" data-toggle="buttons">
+          <form>
+            <label class="btn btn-primary"><input type="radio" name="dest" id="dest_current_location">Current Location</label>
+            <label class="btn btn-primary" ng-repeat="item in places"><input type="radio" name="dest" id="{{item.name}}">{{item.name}}</label>
+          </form>
+        </div>
+      <form>
+        <button id="get_routes_button" ng-click="get_routes()">GetRoutes</button>
+      </form>
     </div>
 
-    <div ng-controller="Ctrl">
       <div class="table-responsive">
         <table class="table">
           <thead>
@@ -99,10 +83,7 @@
             </tr>
           </tbody>
         </table>
-      </div>
-      <form>
-        <button id="get_routes_button" ng-click="getRoutes()">GetRoutes</button>
-      </form>
+    </div>
     </div>
   </div>
 
@@ -157,32 +138,6 @@
       break;
     }
   }
-
-  function getRoutes(){
-    console.log("getRoutes() start.");
-    var source_val = "";
-    var dest_val = "";
-
-    #js_get_routes_src
-
-    #js_get_routes_dest
-
-    if (source_val == "") {
-      alert("Please Choose a Source.");
-    }
-    else if (dest_val == "") {
-      alert("Please Choose a Destination.");
-    }
-    else {
-      console.log("loading routes");
-      console.log("src:"+source_val+" dest:"+dest_val);
-      foo(source_val, dest_val);
-    }
-
-    console.log("getRoutes() end.");
-
-  }
-
   </script>
 </body>
 </html>
