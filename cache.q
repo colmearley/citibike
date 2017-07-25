@@ -23,7 +23,7 @@ box:{$[type[x]~0h;x;.z.s enlist x]}
 persist:{[name;params;record]
   d:`date$ts:.z.p;
   row:enlist r:`timestamp`init`name`params`val`expiration!(ts;ts;name;box params;box record`val;record`expiration);
-  idx:exec first i from select i from get[`..cache_db] where date=d,name=r[`name],params~\:r[`params],i=max i,val~\:r[`val];
+  idx:$[`cache_db in key `.;exec first i from select i from get[`..cache_db] where date=d,name=r[`name],params~\:r[`params],i=max i,val~\:r[`val];0N];
   $[not null idx; [ / upsert
                    -1@"INFO ",string[.z.p]," :: upserting to cache_db :: name:'",string[name],"'";
                    {[tpath;idx;colName;data] @[` sv tpath,colName;(),idx;:;data]}[.Q.par[`:.;d;`cache_db];idx]'[`timestamp`expiration;row`timestamp`expiration]
