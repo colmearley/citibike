@@ -17,20 +17,20 @@
     $scope.places = {};
     $scope.get_places = function() {
       $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_places[]' }
-           ).then(function successCallback(response) { $scope.places = response.data; },
-                  function errorCallback(response) { });
-    };
-    $scope.get_routes = function(start, end) {
+       ).then(function successCallback(response) { $scope.places = response.data; },
+       function errorCallback(response) { });
+     };
+     $scope.get_routes = function(start, end) {
       var source_val = "";
       var dest_val = "";
       if (source_val == "") { alert("Please Choose a Source."); }
       else if (dest_val == "") { alert("Please Choose a Destination."); }
       else { $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_routes["' + souce_val + '";"' + dest_val + '"]' }
-             ).then(function successCallback(response) { console.log(response); $scope.routes = response.data; },
-                  function errorCallback(response) { });
-           }
-    }
-  });
+       ).then(function successCallback(response) { console.log(response); $scope.routes = response.data; },
+       function errorCallback(response) { });
+     }
+   }
+ });
   </script>
 
 
@@ -46,17 +46,17 @@
             <label class="btn btn-primary" ng-repeat="item in places"><input type="radio" name="source" id="{{item.name}}">{{item.name}}</label>
           </form>
         </div>
-      <p>Choose Destination:</p>
+        <p>Choose Destination:</p>
         <div class="btn-group" data-toggle="buttons">
           <form>
             <label class="btn btn-primary"><input type="radio" name="dest" id="dest_current_location">Current Location</label>
             <label class="btn btn-primary" ng-repeat="item in places"><input type="radio" name="dest" id="{{item.name}}">{{item.name}}</label>
           </form>
         </div>
-      <form>
-        <button id="get_routes_button" ng-click="get_routes()">GetRoutes</button>
-      </form>
-    </div>
+        <form>
+          <button id="get_routes_button" ng-click="get_routes()">GetRoutes</button>
+        </form>
+      </div>
 
       <div class="table-responsive">
         <table class="table">
@@ -83,7 +83,7 @@
             </tr>
           </tbody>
         </table>
-    </div>
+      </div>
     </div>
   </div>
 
