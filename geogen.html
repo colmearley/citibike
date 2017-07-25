@@ -26,12 +26,7 @@
       var source = "`" + $scope.sourceModel.value;
       var dest = "`" + $scope.destModel.value;
 
-      if(source == "`(Source)") {
-        alert('Please Choose a Source.');
-        return;
-      }
-      if(dest == "`(Destination)") {
-        alert('Please Choose a Destination.');
+      if(source == "`(Source)" || dest == "`(Destination)") {
         return;
       }
 
