@@ -1,143 +1,138 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="app">
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewpoint" content="width = device-width, initial-scale = 1">
   <title>Citibike Angels Route Calculator</title>
-  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
-
-  <!-- Latest compiled and minified CSS -->
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.6.1/angular.js"></script>
+  <script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-2.5.0.js"></script>
 
   <script>
-  let app = angular.module('app', []);
-  app.controller("Ctrl", function($scope, $http) {
+  angular.module('app', ['ui.bootstrap']).controller("Ctrl", function($scope, $http) {
     $scope.routes = {};
     $scope.places = {};
+    $scope.sourceModel = { value : '(Source)' };
+    $scope.destModel = { value : '(Destination)' };
+    $scope.location_available = 'true';
+    $scope.location  = { latitude : null, longitude : null };
     $scope.get_places = function() {
       $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_places[]' }
        ).then(function successCallback(response) { $scope.places = response.data; },
        function errorCallback(response) { });
-     };
-     $scope.get_routes = function(start, end) {
-      var source_val = "";
-      var dest_val = "";
-      if (source_val == "") { alert("Please Choose a Source."); }
-      else if (dest_val == "") { alert("Please Choose a Destination."); }
-      else { $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_routes["' + souce_val + '";"' + dest_val + '"]' }
-       ).then(function successCallback(response) { console.log(response); $scope.routes = response.data; },
+    };
+    $scope.get_routes = function() {
+      $scope.routes = {};
+      var source = "`" + $scope.sourceModel.value;
+      var dest = "`" + $scope.destModel.value;
+
+      if(source == "`(Source)") {
+        alert('Please Choose a Source.');
+        return;
+      }
+      if(dest == "`(Destination)") {
+        alert('Please Choose a Destination.');
+        return;
+      }
+
+      if (source == '`current location') {
+        if ($scope.location_available == 'true') {
+          source = $scope.location.latitude + " " + $scope.location.longitude;
+        } else {
+          alert('Current Location is not Supported. Please Choose Another Source.');
+        }
+      }
+      if (dest == '`current location' ) {
+        if ($scope.location_available == 'true') {
+          dest = $scope.location.latitude + " " + $scope.location.longitude;
+        } else {
+          alert('Current Location is not Supported. Please Choose Another dest.');
+        }
+      }
+
+      $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_routes["' + source + '";"' + dest + '"]' }
+       ).then(function successCallback(response) { $scope.routes = response.data; },
        function errorCallback(response) { });
+   };
+
+   $scope.getCurrentLocation = function() {
+     if (navigator.geolocation) {
+       navigator.geolocation.getCurrentPosition($scope.radioPosition, $scope.radioError);
+     } else {
+       $scope.location_available = 'false';
+       alert('unable to get location: Location information not supported.');
      }
+   };
+
+  $scope.radioPosition = function(pos) {
+     $scope.location = { latitude : pos.coords.latitude.toPrecision(7), longitude : pos.coords.longitude };
+   }
+
+  $scope.radioError = function(error) {
+     $scope.location_available = 'false';
+     alert('unable to get location: ' + error.message);
+
    }
  });
   </script>
 
-
+  <link href="//netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
 </head>
-<body ng-app="app">
+<body>
   <div ng-controller="Ctrl">
     <div class="container">
-      <div class="nav" ng-init="get_places()">
-        <p>Choose Source:</p>
-        <div class="btn-group" data-toggle="buttons">
-          <form>
-            <label class="btn btn-primary"><input type="radio" name="source" id="source_current_location">Current Location</label>
-            <label class="btn btn-primary" ng-repeat="item in places"><input type="radio" name="source" id="{{item.name}}">{{item.name}}</label>
-          </form>
+      <div class="container"> <!-- navigation -->
+        <div class="row" ng-init="get_places()">
+          <p>Choose Source:</p>
         </div>
-        <p>Choose Destination:</p>
-        <div class="btn-group" data-toggle="buttons">
-          <form>
-            <label class="btn btn-primary"><input type="radio" name="dest" id="dest_current_location">Current Location</label>
-            <label class="btn btn-primary" ng-repeat="item in places"><input type="radio" name="dest" id="{{item.name}}">{{item.name}}</label>
-          </form>
+        <div class="row">
+          <div class="btn-group">
+            <label class="btn btn-primary" ng-model="sourceModel.value" ng-click="getCurrentLocation(); get_routes()" uib-btn-radio="'current location'">Current Location</label>
+            <label class="btn btn-primary" ng-model="sourceModel.value" ng-click="get_routes()" uib-btn-radio="'{{item.name}}'" ng-repeat="item in places">{{item.name}}</label>
+          </div>
         </div>
-        <form>
-          <button id="get_routes_button" ng-click="get_routes()">GetRoutes</button>
-        </form>
+        <div class="row">
+          <p>Choose Destination:</p>
+        </div>
+        <div class="row">
+          <div class="btn-group">
+            <label class="btn btn-primary" ng-model="destModel.value" ng-click="getCurrentLocation(); get_routes()" uib-btn-radio="'current location'" ng-click="getCurrentLocation()">Current Location</label>
+            <label class="btn btn-primary" ng-model="destModel.value" ng-click="get_routes()" uib-btn-radio="'{{item.name}}'" ng-repeat="item in places">{{item.name}}</label>
+          </div>
       </div>
 
-      <div class="table-responsive">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Points</th>
-              <th>Total Distance</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Start Distance</th>
-              <th>End Distance</th>
-              <th>Route</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr ng-repeat="item in arr">
-              <td>{{item.points}}</td>
-              <td>{{item.total_distance}}</td>
-              <td><a ng-href={{item.start_route}}>{{item.start_name}}</a></td>
-              <td><a ng-href={{item.end_route}}>{{item.end_name}}</a></td>
-              <td>{{item.start_distance}}</td>
-              <td>{{item.end_distance}}</td>
-              <td><a ng-href={{item.route}}>route</a></td>
-            </tr>
-          </tbody>
-        </table>
+      <div class="container">  <!-- results table -->
+        <div class="row">
+          <h4>Route from {{sourceModel.value}} to {{destModel.value}}:</h4>
+        </div>
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Points</th>
+                <th>Total Distance</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Start Distance</th>
+                <th>End Distance</th>
+                <th>Route</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="item in routes">
+                <td>{{item.points}}</td>
+                <td>{{item.total_distance}}</td>
+                <td><a ng-href={{item.start_route}}>{{item.start_name}}</a></td>
+                <td><a ng-href={{item.end_route}}>{{item.end_name}}</a></td>
+                <td>{{item.start_distance}}</td>
+                <td>{{item.end_distance}}</td>
+                <td><a ng-href={{item.route}}>route</a></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
-
-  <script>
-  function getCurrentLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(radioPosition, radioError);
-    } else {
-      disableCurrentLocation("Location information not supported.")
-    }
-  }
-
-  function disableCurrentLocation(message) {
-    var radio  = document.getElementById("source_current_location");
-    var form_source  = document.getElementById("form_source");
-    radio.disabled = true;
-    radio.labels[0].innerText = "Current Location is not available:'" + message + "'";
-    radio.checked = false;
-    form_source.elements[0].checked = true;
-    var radio_dest  = document.getElementById("dest_current_location");
-    var form_dest  = document.getElementById("form_dest");
-    radio_dest.disabled = true;
-    radio_dest.labels[0].innerText = "Current Location is not available:'" + message + "'";
-    radio_dest.checked = false;
-    form_dest.elements[0].checked = true;
-  }
-
-  function radioPosition(position) {
-    lat = position.coords.latitude.toPrecision(7);
-    lon = position.coords.longitude.toPrecision(7); 
-    var radio  = document.getElementById("source_current_location");
-    radio.value = lat + ", " + lon;
-    radio.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
-    var radio_dest  = document.getElementById("dest_current_location");
-    radio_dest.value = lat + ", " + lon;
-    radio_dest.labels[0].innerText = "Current Location (" + lat + ", " + lon + ")";
-  }
-
-  function radioError(error) {
-    switch(error.code) {
-      case error.PERMISSION_DENIED:
-      disableCurrentLocation("Permission Denied")
-      break;
-      case error.POSITION_UNAVAILABLE:
-      disableCurrentLocation("Position Unavailable")
-      break;
-      case error.TIMEOUT:
-      disableCurrentLocation("Timeout")
-      break;
-      case error.UNKNOWN_ERROR:
-      disableCurrentLocation("Unknown Error")
-      break;
-    }
-  }
-  </script>
 </body>
 </html>
