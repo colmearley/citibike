@@ -81,7 +81,7 @@
           <p>Choose Source:</p>
         </div>
         <div class="row">
-          <div class="btn-group">
+          <div class="btn-group-justified">
             <label class="btn btn-primary" ng-model="sourceModel.value" ng-click="getCurrentLocation(); get_routes()" uib-btn-radio="'current location'">Current Location</label>
             <label class="btn btn-primary" ng-model="sourceModel.value" ng-click="get_routes()" uib-btn-radio="'{{item.name}}'" ng-repeat="item in places">{{item.name}}</label>
           </div>
@@ -90,7 +90,7 @@
           <p>Choose Destination:</p>
         </div>
         <div class="row">
-          <div class="btn-group">
+          <div class="btn-group-justified">
             <label class="btn btn-primary" ng-model="destModel.value" ng-click="getCurrentLocation(); get_routes()" uib-btn-radio="'current location'" ng-click="getCurrentLocation()">Current Location</label>
             <label class="btn btn-primary" ng-model="destModel.value" ng-click="get_routes()" uib-btn-radio="'{{item.name}}'" ng-repeat="item in places">{{item.name}}</label>
           </div>
