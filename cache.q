@@ -33,7 +33,7 @@ persist:{[name;params;record]
                    saveTable[`:.;d;`cache_db;,;row];
                   ]
    ];
-  system"l .";
+  reloadDB[];
  }
 
 persist0:{[name;params;record]
@@ -43,7 +43,7 @@ persist0:{[name;params;record]
   if[()~ck:m`cacheKeys;:()];
   val:() xkey record`val;
   rows:enlist[`timestamp`init`params`expiration!(ts;ts;box params;record`expiration)] cross (ck#val),'([]val:box each val);
-  if[not dbName in key `.; saveTable[`:.;d;dbName;:;rows]; system"l ."; :()];
+  if[not dbName in key `.; saveTable[`:.;d;dbName;:;rows]; reloadDB[]; :()];
   unchanged:?[get (` sv `.,dbName);parse each ("date=",string[d];"params in rows`params";ckt," in ck#rows";"i=(max;i) fby ",ckt:"([]",sv[";";string  ck],")";"val in rows`val");0b;{x!x}`i,ck];
   if[count unchanged;
     -1@"INFO ",string[.z.p]," :: upserting to '",string[name],"' count:'",string[count unchanged],"'";
@@ -52,7 +52,7 @@ persist0:{[name;params;record]
   if[count new;
     -1@"INFO ",string[.z.p]," :: appending to '",string[name],"' count:'",string[count new],"'";
     saveTable[`:.;d;dbName;,;new]];
-  system"l .";
+  reloadDB[];
  }
 
 saveTable:{[db;dte;tableName;method;table]
@@ -87,6 +87,11 @@ miss:{[name;params]
   function:value .cache.absoluteName name;
   .cache.create[name;function;expiry;cacheKeys];
   .wrap.wrap[.cache.lookup;name]
+ }
+
+.cache.reloadDB:{
+  system"l .";
+  .Q.chk[`:.];
  }
 
 \d .
