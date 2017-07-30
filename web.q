@@ -9,7 +9,7 @@ init:{
  }
 
 header:{[contentType;content] "HTTP/1.1 200 OK\r\nContent-Type: ",contentType,"\r\nConnection: Keep-Alive\r\nContent-Length: ",string[count content],"\r\n\r\n",content}
-customHandler:{$[any first[x]~/:(enlist["?"];"");   header["text/html"] "\n" sv read0 ` sv hsym[`..],`geogen.html;
+customHandler:{$[any first[x]~/:(enlist["?"];"");   header["text/html"] "\n" sv read0 ` sv hsym[`..],`index.html;
                  first[x] like "?get_json_routes*"; header["application/json"] value .h.uh 1_ first[x];
                  first[x] like "?get_json_places*"; header["application/json"] value .h.uh 1_ first[x];
                  first[x] like "*.css"; .web.zph x;
