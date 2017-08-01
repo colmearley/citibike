@@ -6,15 +6,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Citibike Angels Route Calculator</title>
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.1/angular.js"></script>
-<!--  <script src="https://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-2.5.0.js"></script> -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.14.2/ui-bootstrap-tpls.min.js"></script>
-
   <script>
   angular.module('app', ['ui.bootstrap']).controller("Ctrl", function($scope, $http) {
     $scope.routes = {};
     $scope.places = {};
-    $scope.sourceModel = { value : '(Source)' };
-    $scope.destModel = { value : '(Destination)' };
+    $scope.sourceModel = {};
+    $scope.destModel = {};
     $scope.location_available = 'true';
     $scope.location  = { latitude : null, longitude : null };
     $scope.get_places = function() {
@@ -23,28 +21,34 @@
        function errorCallback(response) { });
     };
     $scope.get_routes = function() {
+      console.log($scope.source);
       $scope.routes = {};
-      var source = "`" + $scope.sourceModel.value;
-      var dest = "`" + $scope.destModel.value;
+      var source = "`" + $scope.source.name;
+      var dest = "`" + $scope.dest.name;
 
-      if(source == "`(Source)" || dest == "`(Destination)") {
+      if(source == "`(Source)" || dest == "`(Destination)" || source == "`" || dest == "`") {
         return;
       }
 
-      if (source == '`current location') {
+      if (source == '`Current Location') {
         if ($scope.location_available == 'true') {
           source = $scope.location.latitude + " " + $scope.location.longitude;
         } else {
           alert('Current Location is not Supported. Please Choose Another Source.');
         }
+      } else {
+        source = $scope.source.latitude + " " + $scope.source.longitude;
       }
-      if (dest == '`current location' ) {
+      if (dest == '`Current Location' ) {
         if ($scope.location_available == 'true') {
           dest = $scope.location.latitude + " " + $scope.location.longitude;
         } else {
           alert('Current Location is not Supported. Please Choose Another dest.');
         }
+      } else {
+        dest = $scope.dest.latitude + " " + $scope.dest.longitude;
       }
+      console.log('https://earls.qhigh.com:3001/?get_json_routes["' + source + '";"' + dest + '"]');
 
       $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_routes["' + source + '";"' + dest + '"]' }
        ).then(function successCallback(response) { $scope.routes = response.data; },
@@ -61,32 +65,66 @@
    };
 
   $scope.radioPosition = function(pos) {
-     $scope.location = { latitude : pos.coords.latitude.toPrecision(7), longitude : pos.coords.longitude };
-   }
+     $scope.location = { latitude : pos.coords.latitude.toPrecision(7), longitude : pos.coords.longitude }
+   };
 
   $scope.radioError = function(error) {
      $scope.location_available = 'false';
      alert('unable to get location: ' + error.message);
-   }
+   };
 
-  $scope.changeSource = function(name) { $scope.sourceModel.value = name; }
-  $scope.changeDest   = function(name) { $scope.destModel.value   = name; }
-  $scope.toggleSourceBar = function()  { 
-    var x = document.getElementById("sourceNav");
-    if (x.className === "topnav") { x.className += " responsive"; }
-    else { x.className = "topnav"; }
+  $scope.changeSource = function(name, latitude, longitude) {
+    console.log("change source:" + name + " " + latitude + " " + longitude);
+    $scope.sourceModel.name = name;
+    $scope.source.name = name;
+    $scope.source.latitude  = latitude;
+    $scope.source.longitude  = longitude;
+    $scope.source_addresses = [];
+    if ( name == 'Current Location' ) {
+      $scope.getCurrentLocation();
+    }
+  };
+  $scope.changeDest  = function(name, latitude, longitude) {
+    $scope.destModel.name = name;
+    $scope.dest.name = name;
+    $scope.dest.latitude = latitude;
+    $scope.dest.longitude = longitude;
+    $scope.dest_addresses = [];
+    if ( name == 'Current Location' ) {
+      $scope.getCurrentLocation();
+    }
   }
-  $scope.closeSourceBar = function() {
-   document.getElementById("sourceNav").className="topnav";
-  }
-  $scope.toggleDestBar = function()  { 
-    var x = document.getElementById("destNav");
-    if (x.className === "topnav") { x.className += " responsive"; }
-    else { x.className = "topnav"; }
-  }
-  $scope.closeDestBar = function() {
-   document.getElementById("destNav").className="topnav";
-  }
+
+  $scope.source = {};
+  $scope.source_addresses = [];
+  $scope.getSourceAddresses = function() {
+    console.log("getSourceAddresses:search param:" + $scope.sourceModel.name);
+    $scope.source_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
+    $http({ method: 'GET', url: 'https://maps.googleapis.com/maps/api/geocode/json?address=' + $scope.sourceModel.name}
+         ).then(function successCallback(response) {
+                  console.log("results:");
+                  console.log(response);
+                  for (var i = 0; i < response.data.results.length; i++) {
+                    var result = response.data.results[i];
+                    $scope.source_addresses.push({ name: result.formatted_address, latitude: result.geometry.location.lat, longitude: result.geometry.location.lng });
+                  }
+                },
+                function errorCallback(response) { });
+  };
+
+  $scope.dest = {};
+  $scope.dest_addresses = [];
+  $scope.getDestAddresses = function() {
+    $scope.dest_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
+    $http({ method: 'GET', url: 'https://maps.googleapis.com/maps/api/geocode/json?address=' + $scope.destModel.name}
+         ).then(function successCallback(response) {
+                  for (var i = 0; i < response.data.results.length; i++) {
+                    var result = response.data.results[i];
+                    $scope.dest_addresses.push({ name: result.formatted_address, latitude: result.geometry.location.lat, longitude: result.geometry.location.lng });
+                  }
+                },
+                function errorCallback(response) { });
+  };
  });
   </script>
   <link href="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
@@ -97,48 +135,18 @@
     <div class="container" ng-init="get_places()">
       <div class="container"> <!-- navigation -->
         <p>Choose Source:</p>
-        <div class="btn-group-justified nav-desktop">
-          <label class="btn btn-primary btn-lg" ng-model="sourceModel.value" ng-click="getCurrentLocation(); get_routes()" uib-btn-radio="'current location'">Current Location</label>
-          <label class="btn btn-primary btn-lg" ng-model="sourceModel.value" ng-click="get_routes()" uib-btn-radio="'{{item.name}}'" ng-repeat="item in places">{{item.name}}</label>
-        </div>
-        <div class="btn-group nav-mobile" uib-dropdown is-open="source-button.isopen">
-          <button id="source-button" type="button" class="btn btn-primary btn-lg" uib-dropdown-toggle ng-disabled="disabled">{{sourceModel.value}}<span class="caret"></span>
-          </button>
-          <ul class="uib-dropdown-menu" role="menu" aria-labelledby="source-button">
-            <li role="menutitem">
-              <a href="#" ng-click="changeSource('current location'); getCurrentLocation(); get_routes()">Current Location</a>
-              <a href="#" ng-click="changeSource(item.name); get_routes()" ng-repeat="item in places">{{item.name}}</a>
-            </li>
-          </ul>
-        </div>
-        <div class="topnav" id="sourceNav">
-           <a href="#" ng-click="changeSource('current location'); closeSourceBar(); getCurrentLocation(); get_routes()">Current Location</a>
-           <a href="#" ng-click="changeSource(item.name); closeSourceBar(); get_routes()" ng-repeat="item in places">{{item.name}}</a>
-           <a href="javascript:void(0);" class="icon" ng-click="toggleSourceBar()">&#9776;</a>
+        <div class="topsearch" id="sourceSearch">
+          <input type="text" id="source_address_input" placeholder="Source" ng-model="sourceModel.name" ng-change="getSourceAddresses()"  />
+          <a href="#" ng-click="changeSource(item.name, item.latitude, item.longitude); get_routes()" ng-repeat="item in source_addresses">{{item.name}}</a>
         </div>
         <p>Choose Destination:</p>
-        <div class="btn-group-justified nav-desktop">
-          <label class="btn btn-primary btn-lg" ng-model="destModel.value" ng-click="getCurrentLocation(); get_routes()" uib-btn-radio="'current location'">Current Location</label>
-          <label class="btn btn-primary btn-lg" ng-model="destModel.value" ng-click="get_routes()" uib-btn-radio="'{{item.name}}'" ng-repeat="item in places">{{item.name}}</label>
-        </div>
-        <div class="btn-group nav-mobile" uib-dropdown is-open="dest-button.isopen">
-          <button id="dest-button" type="button" class="btn btn-primary btn-lg" uib-dropdown-toggle ng-disabled="disabled">{{destModel.value}}<span class="caret"></span></button>
-          <ul class="uib-dropdown-menu" role="menu" aria-labelledby="dest-button">
-            <li role="menutitem">
-              <a href="#" class="btn btn-primary btn-lg" ng-click="changeDest('current location'); getCurrentLocation(); get_routes()">Current Location</a>
-              <a href="#" class="btn btn-primary btn-lg" ng-click="changeDest(item.name); get_routes()" ng-repeat="item in places">{{item.name}}</a>
-            </li>
-          </ul>
-        </div>
-        <div class="topnav" id="destNav">
-           <a href="#" ng-click="changeDest('current location'); closeDestBar(); getCurrentLocation(); get_routes()">Current Location</a>
-           <a href="#" ng-click="changeDest(item.name); closeDestBar(); get_routes()" ng-repeat="item in places">{{item.name}}</a>
-           <a href="javascript:void(0);" class="icon" ng-click="toggleDestBar()">&#9776;</a>
+        <div class="topsearch" id="destSearch">
+          <input type="text" id="dest_address_input" placeholder="Destination" ng-model="destModel.name" ng-change="getDestAddresses()"  />
+          <a href="#" ng-click="changeDest(item.name, item.latitude, item.longitude); get_routes()" ng-repeat="item in dest_addresses">{{item.name}}</a>
         </div>
       </div>
-
       <div class="container">  <!-- results table -->
-        <h4>Route from {{sourceModel.value}} to {{destModel.value}}:</h4>
+        <h4>Route from {{sourceModel.name}} to {{destModel.name}}:</h4>
         <div class="table-responsive">
           <table class="table table-bordered table-striped">
             <thead>
