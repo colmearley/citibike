@@ -54,40 +54,70 @@
      alert('unable to get location: ' + error.message);
    };
 
-  $scope.source_history = [];
+  $scope.get_source_history = function() {
+    var x = localStorage.getItem('source_history');
+    if ( x == null || x == "" ) {
+      return [];
+    } else {
+      return JSON.parse(x);
+    }
+  }
+  $scope.set_source_history = function(name, latitude, longitude) {
+    var x = $scope.get_source_history();
+    x.push({name: name, latitude: latitude, longitude: longitude});
+    localStorage.setItem('source_history', JSON.stringify(x));
+  }
+  
   $scope.changeSource = function(name, latitude, longitude) {
     $scope.sourceModel = {name: name, latitude: latitude, longitude: longitude};
     $scope.source_addresses = [];
     if ( name == 'Current Location' ) {
       $scope.getCurrentLocation();
+      return;
     }
 
     var matches = 0;
-    for (var i = 0; i < $scope.source_history.length; i++) {
-      if ($scope.source_history[i].name == name) {
+    var source_history = $scope.get_source_history();
+    for (var i = 0; i < source_history.length; i++) {
+      if (source_history[i].name == name) {
         matches++;
       }
     }
     if (matches == 0) {
-      $scope.source_history.push({name: name, latitude: latitude, longitude: longitude});
+      $scope.set_source_history(name, latitude, longitude);
     }
   };
-  $scope.dest_history = [];
+
+  $scope.get_dest_history = function() {
+    var x = localStorage.getItem('dest_history');
+    if ( x == null || x == "" ) {
+      return [];
+    } else {
+      return JSON.parse(x);
+    }
+  }
+  $scope.set_dest_history = function(name, latitude, longitude) {
+    var x = $scope.get_dest_history();
+    x.push({name: name, latitude: latitude, longitude: longitude});
+    localStorage.setItem('dest_history', JSON.stringify(x));
+  }
   $scope.changeDest  = function(name, latitude, longitude) {
     $scope.destModel = {name: name, latitude: latitude, longitude: longitude};
     $scope.dest_addresses = [];
     if ( name == 'Current Location' ) {
       $scope.getCurrentLocation();
+      return;
     }
 
     var matches = 0;
-    for (var i = 0; i < $scope.dest_history.length; i++) {
-      if ($scope.dest_history[i].name == name) {
+    var dest_history = $scope.get_dest_history();
+    for (var i = 0; i < dest_history.length; i++) {
+      if (dest_history[i].name == name) {
         matches++;
       }
     }
     if (matches == 0) {
-      $scope.dest_history.push({name: name, latitude: latitude, longitude: longitude});
+      $scope.set_dest_history(name, latitude, longitude);
     }
   };
 
@@ -96,14 +126,16 @@
     $http({ method: 'GET', url: 'https://maps.googleapis.com/maps/api/geocode/json?address=' + $scope.sourceModel.name}
          ).then(function successCallback(response) {
                   $scope.source_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
-                  for (var i = 0; i < $scope.source_history.length; i++) {
-                    $scope.source_addresses.push($scope.source_history[i]);
+                  var source_history = $scope.get_source_history();
+                  console.log(source_history);
+                  for (var i = 0; i < source_history.length; i++) {
+                    $scope.source_addresses.push(source_history[i]);
                   }
                   for (var i = 0; i < response.data.results.length; i++) {
                     var result = response.data.results[i];
                     var matches = 0;
-                    for (var j = 0; j < $scope.source_history.length; j++) {
-                      if ($scope.source_history[j].name == result.formatted_address) {
+                    for (var j = 0; j < source_history.length; j++) {
+                      if (source_history[j].name == result.formatted_address) {
                         matches++;
                       }
                     }
@@ -111,6 +143,7 @@
                       $scope.source_addresses.push({ name: result.formatted_address, latitude: result.geometry.location.lat, longitude: result.geometry.location.lng });
                     }
                   }
+                  console.log($scope.source_addresses);
                 },
                 function errorCallback(response) { });
   };
@@ -120,14 +153,15 @@
     $http({ method: 'GET', url: 'https://maps.googleapis.com/maps/api/geocode/json?address=' + $scope.destModel.name}
          ).then(function successCallback(response) {
                   $scope.dest_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
-                  for (var i = 0; i < $scope.dest_history.length; i++) {
-                    $scope.dest_addresses.push($scope.dest_history[i]);
+                  var dest_history = $scope.get_dest_history();
+                  for (var i = 0; i < dest_history.length; i++) {
+                    $scope.dest_addresses.push(dest_history[i]);
                   }
                   for (var i = 0; i < response.data.results.length; i++) {
                     var result = response.data.results[i];
                     var matches = 0;
-                    for (var j = 0; j < $scope.dest_history.length; j++) {
-                      if ($scope.dest_history[j].name == result.formatted_address) {
+                    for (var j = 0; j < dest_history.length; j++) {
+                      if (dest_history[j].name == result.formatted_address) {
                         matches++;
                       }
                     }
