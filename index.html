@@ -21,36 +21,17 @@
        function errorCallback(response) { });
     };
     $scope.get_routes = function() {
-      console.log($scope.source);
       $scope.routes = {};
-      var source = "`" + $scope.source.name;
-      var dest = "`" + $scope.dest.name;
 
-      if(source == "`(Source)" || dest == "`(Destination)" || source == "`" || dest == "`") {
-        return;
-      }
+      if($scope.sourceModel.name == "" || $scope.destModel.name == "") return;
 
-      if (source == '`Current Location') {
-        if ($scope.location_available == 'true') {
-          source = $scope.location.latitude + " " + $scope.location.longitude;
-        } else {
-          alert('Current Location is not Supported. Please Choose Another Source.');
-        }
-      } else {
-        source = $scope.source.latitude + " " + $scope.source.longitude;
-      }
-      if (dest == '`Current Location' ) {
-        if ($scope.location_available == 'true') {
-          dest = $scope.location.latitude + " " + $scope.location.longitude;
-        } else {
-          alert('Current Location is not Supported. Please Choose Another dest.');
-        }
-      } else {
-        dest = $scope.dest.latitude + " " + $scope.dest.longitude;
-      }
-      console.log('https://earls.qhigh.com:3001/?get_json_routes["' + source + '";"' + dest + '"]');
+      if ($scope.sourceModel.name == 'Current Location' && $scope.location_available != 'true')
+        alert('Current Location is not Supported. Please Choose Another Source.');
 
-      $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_routes["' + source + '";"' + dest + '"]' }
+      if ($scope.destModel.name == 'Current Location' && $scope.location_available != 'true')
+        alert('Current Location is not Supported. Please Choose Another dest.');
+
+      $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_routes["' + $scope.sourceModel.latitude + " " + $scope.sourceModel.longitude + '";"' + $scope.destModel.latitude + " " + $scope.destModel.longitude + '"]' }
        ).then(function successCallback(response) { $scope.routes = response.data; },
        function errorCallback(response) { });
    };
@@ -73,54 +54,86 @@
      alert('unable to get location: ' + error.message);
    };
 
+  $scope.source_history = [];
   $scope.changeSource = function(name, latitude, longitude) {
-    console.log("change source:" + name + " " + latitude + " " + longitude);
-    $scope.sourceModel.name = name;
-    $scope.source.name = name;
-    $scope.source.latitude  = latitude;
-    $scope.source.longitude  = longitude;
+    $scope.sourceModel = {name: name, latitude: latitude, longitude: longitude};
     $scope.source_addresses = [];
     if ( name == 'Current Location' ) {
       $scope.getCurrentLocation();
     }
+
+    var matches = 0;
+    for (var i = 0; i < $scope.source_history.length; i++) {
+      if ($scope.source_history[i].name == name) {
+        matches++;
+      }
+    }
+    if (matches == 0) {
+      $scope.source_history.push({name: name, latitude: latitude, longitude: longitude});
+    }
   };
+  $scope.dest_history = [];
   $scope.changeDest  = function(name, latitude, longitude) {
-    $scope.destModel.name = name;
-    $scope.dest.name = name;
-    $scope.dest.latitude = latitude;
-    $scope.dest.longitude = longitude;
+    $scope.destModel = {name: name, latitude: latitude, longitude: longitude};
     $scope.dest_addresses = [];
     if ( name == 'Current Location' ) {
       $scope.getCurrentLocation();
     }
-  }
 
-  $scope.source = {};
+    var matches = 0;
+    for (var i = 0; i < $scope.dest_history.length; i++) {
+      if ($scope.dest_history[i].name == name) {
+        matches++;
+      }
+    }
+    if (matches == 0) {
+      $scope.dest_history.push({name: name, latitude: latitude, longitude: longitude});
+    }
+  };
+
   $scope.source_addresses = [];
   $scope.getSourceAddresses = function() {
-    console.log("getSourceAddresses:search param:" + $scope.sourceModel.name);
-    $scope.source_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
     $http({ method: 'GET', url: 'https://maps.googleapis.com/maps/api/geocode/json?address=' + $scope.sourceModel.name}
          ).then(function successCallback(response) {
-                  console.log("results:");
-                  console.log(response);
+                  $scope.source_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
+                  for (var i = 0; i < $scope.source_history.length; i++) {
+                    $scope.source_addresses.push($scope.source_history[i]);
+                  }
                   for (var i = 0; i < response.data.results.length; i++) {
                     var result = response.data.results[i];
-                    $scope.source_addresses.push({ name: result.formatted_address, latitude: result.geometry.location.lat, longitude: result.geometry.location.lng });
+                    var matches = 0;
+                    for (var j = 0; j < $scope.source_history.length; j++) {
+                      if ($scope.source_history[j].name == result.formatted_address) {
+                        matches++;
+                      }
+                    }
+                    if (matches == 0) {
+                      $scope.source_addresses.push({ name: result.formatted_address, latitude: result.geometry.location.lat, longitude: result.geometry.location.lng });
+                    }
                   }
                 },
                 function errorCallback(response) { });
   };
 
-  $scope.dest = {};
   $scope.dest_addresses = [];
   $scope.getDestAddresses = function() {
-    $scope.dest_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
     $http({ method: 'GET', url: 'https://maps.googleapis.com/maps/api/geocode/json?address=' + $scope.destModel.name}
          ).then(function successCallback(response) {
+                  $scope.dest_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
+                  for (var i = 0; i < $scope.dest_history.length; i++) {
+                    $scope.dest_addresses.push($scope.dest_history[i]);
+                  }
                   for (var i = 0; i < response.data.results.length; i++) {
                     var result = response.data.results[i];
-                    $scope.dest_addresses.push({ name: result.formatted_address, latitude: result.geometry.location.lat, longitude: result.geometry.location.lng });
+                    var matches = 0;
+                    for (var j = 0; j < $scope.dest_history.length; j++) {
+                      if ($scope.dest_history[j].name == result.formatted_address) {
+                        matches++;
+                      }
+                    }
+                    if (matches == 0) {
+                      $scope.dest_addresses.push({ name: result.formatted_address, latitude: result.geometry.location.lat, longitude: result.geometry.location.lng });
+                    }
                   }
                 },
                 function errorCallback(response) { });
@@ -136,12 +149,12 @@
       <div class="container"> <!-- navigation -->
         <p>Choose Source:</p>
         <div class="topsearch" id="sourceSearch">
-          <input type="text" id="source_address_input" placeholder="Source" ng-model="sourceModel.name" ng-change="getSourceAddresses()"  />
+          <input type="text" id="source_address_input" placeholder="Source" ng-model="sourceModel.name" ng-change="getSourceAddresses()" />
           <a href="#" ng-click="changeSource(item.name, item.latitude, item.longitude); get_routes()" ng-repeat="item in source_addresses">{{item.name}}</a>
         </div>
         <p>Choose Destination:</p>
         <div class="topsearch" id="destSearch">
-          <input type="text" id="dest_address_input" placeholder="Destination" ng-model="destModel.name" ng-change="getDestAddresses()"  />
+          <input type="text" id="dest_address_input" placeholder="Destination" ng-model="destModel.name" ng-change="getDestAddresses()" />
           <a href="#" ng-click="changeDest(item.name, item.latitude, item.longitude); get_routes()" ng-repeat="item in dest_addresses">{{item.name}}</a>
         </div>
       </div>
