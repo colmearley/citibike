@@ -12,6 +12,7 @@ header:{[contentType;content] "HTTP/1.1 200 OK\r\nContent-Type: ",contentType,"\
 customHandler:{$[any first[x]~/:(enlist["?"];"");   header["text/html"] "\n" sv read0 ` sv hsym[`..],`index.html;
                  first[x] like "?get_json_routes*"; header["application/json"] value .h.uh 1_ first[x];
                  first[x] like "?get_json_places*"; header["application/json"] value .h.uh 1_ first[x];
+                 first[x] like "?get_json_addresses*"; header["application/json"] value .h.uh 1_ first[x];
                  first[x] like "*.css"; .web.zph x;
                  .h.hn["404 Not Found";`txt] .h.uh first x]}
 

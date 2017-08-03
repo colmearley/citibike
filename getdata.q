@@ -36,6 +36,10 @@ googleDistance1:{[lat0;lon0;lat1;lon1] if[not (lat0;lon0;lat1;lon1) in key gdcac
 googleDistance1C:.cache.init[`googleDistance1;24t;()]
 googledistance:{[lat0;lon0;lat1;lon1] googleDistance1C .' flip (lat0;lon0;lat1;lon1)}
 
+googleAddress:{ .utils.getJsonUrl["https://maps.googleapis.com/maps/api/geocode/json?address=",ssr[string[first x];" ";"+"]] }
+googleAddressC:.cache.init[`googleAddress;24t;()]
+googleAddressLocation:{ `name`latitude`longitude!{enlist[x`formatted_address],x[;`geometry;`location]`lat`lng}[googleAddressC[`$x]`results] }
+
 htmltable:{"<table>\n",({"<tr>\n",raze[{"<th>",.utils.safeString[x],"</th>\n"}each cols x],"</tr>\n"}[x],raze {"<tr>\n",raze[{"<td>",.utils.safeString[x],"</td>\n"}each x],"</tr>\n"}each x),"</table>\n"}
 
 parseArg:@[{value .utils.safeString x};;`$]
@@ -44,6 +48,12 @@ get_routes:{[start_name;end_name]
   $[type[start_name]=-11h;[start:.data.places[start_name]];[start:start_name;start_name:`]];
   $[type[end_name]=-11h;[end:.data.places[end_name]];[end:end_name;end_name:`]];
   station_info:getStationInfoStatusPoints[];
+  map:`station_id xkey select station_id,name,lat,lon,num_bikes_available,num_docks_available,points from station_info;
+  "add start and end as synthetic stations with no points";
+  map,:flip `station_id`name`lat`lon`num_bikes_available`num_docks_available`points!(9998 9999i;("start";"end");start[0],end[0];start[1],end[1];1 0f;0 1f;1 -1);
+  map:update start_dist:.math.hav[start 0;start 1]. (lat;lon),end_dist:.math.hav[end 0;end 1] . (lat;lon) from map;
+  stmap:`st0`st1 xkey select st0,st1,distance:.math.hav[lat0;lon0;lat1;lon1],points:?[points0>0;0;?[points1<0;0;abs[points0]+abs[points1]]] from exec ([]st0:station_id;lat0:lat;lon0:lon;points0:points) cross ([]st1:station_id;lat1:lat;lon1:lon;points1:points) from map;
+  
   tbl1:select name,points,lat,lon,start_dis:?[name like .data.favorites[start_name];0;.math.hav[start 0;start 1] . (lat;lon)], end_dis:?[name like .data.favorites[end_name];0;.math.hav[end 0;end 1] . (lat;lon)] from station_info;
   tbls:select station1:name,lat1:lat,lon1:lon,points1:points,start_dis from tbl1 where start_dis=(min;start_dis) fby points;
   tble:select station2:name,lat2:lat,lon2:lon,points2:points,end_dis from tbl1 where end_dis=(min;end_dis) fby points;
@@ -85,6 +95,7 @@ genmail:{[start;end]
 
 get_json_routes:{[start;end] .j.j get_routes[start;end]}
 get_json_places:{[] .j.j ([]name:key .data.places)}
+get_json_addresses:{.j.j googleAddressLocation[x]}
 \d .log
 info:{-1@"INFO ",string[.z.i]," ",string[.z.Z]," :::: ",x;}
 \d .

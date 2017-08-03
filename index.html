@@ -123,24 +123,25 @@
 
   $scope.source_addresses = [];
   $scope.getSourceAddresses = function() {
-    $http({ method: 'GET', url: 'https://maps.googleapis.com/maps/api/geocode/json?address=' + $scope.sourceModel.name}
+    $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_addresses[\"' + $scope.sourceModel.name + '\"]'}
          ).then(function successCallback(response) {
+                  console.log(response);
                   $scope.source_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
                   var source_history = $scope.get_source_history();
                   console.log(source_history);
                   for (var i = 0; i < source_history.length; i++) {
                     $scope.source_addresses.push(source_history[i]);
                   }
-                  for (var i = 0; i < response.data.results.length; i++) {
-                    var result = response.data.results[i];
+                  for (var i = 0; i < response.data.length; i++) {
+                    var result = response.data[i];
                     var matches = 0;
                     for (var j = 0; j < source_history.length; j++) {
-                      if (source_history[j].name == result.formatted_address) {
+                      if (source_history[j].name == result.name) {
                         matches++;
                       }
                     }
                     if (matches == 0) {
-                      $scope.source_addresses.push({ name: result.formatted_address, latitude: result.geometry.location.lat, longitude: result.geometry.location.lng });
+                      $scope.source_addresses.push({ name: result.name, latitude: result.latitude, longitude: result.longitude });
                     }
                   }
                   console.log($scope.source_addresses);
@@ -150,23 +151,23 @@
 
   $scope.dest_addresses = [];
   $scope.getDestAddresses = function() {
-    $http({ method: 'GET', url: 'https://maps.googleapis.com/maps/api/geocode/json?address=' + $scope.destModel.name}
+    $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_addresses["' + $scope.destModel.name +'"]'}
          ).then(function successCallback(response) {
                   $scope.dest_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
                   var dest_history = $scope.get_dest_history();
                   for (var i = 0; i < dest_history.length; i++) {
                     $scope.dest_addresses.push(dest_history[i]);
                   }
-                  for (var i = 0; i < response.data.results.length; i++) {
-                    var result = response.data.results[i];
+                  for (var i = 0; i < response.data.length; i++) {
+                    var result = response.data[i];
                     var matches = 0;
                     for (var j = 0; j < dest_history.length; j++) {
-                      if (dest_history[j].name == result.formatted_address) {
+                      if (dest_history[j].name == result.name) {
                         matches++;
                       }
                     }
                     if (matches == 0) {
-                      $scope.dest_addresses.push({ name: result.formatted_address, latitude: result.geometry.location.lat, longitude: result.geometry.location.lng });
+                      $scope.dest_addresses.push({ name: result.name, latitude: result.latitude, longitude: result.longitude });
                     }
                   }
                 },
