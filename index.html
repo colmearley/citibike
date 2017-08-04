@@ -122,18 +122,25 @@
   };
 
   $scope.source_addresses = [];
+  $scope.prePopulateSourceAddresses = function() {
+    $scope.source_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
+    var source_history = $scope.get_source_history();
+    for (var i = 0; i < source_history.length; i++) {
+      $scope.source_addresses.push(source_history[i]);
+    }
+  }
   $scope.getSourceAddresses = function() {
+    $scope.prePopulateSourceAddresses();
     $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_addresses[\"' + $scope.sourceModel.name + '\"]'}
          ).then(function successCallback(response) {
                   console.log(response);
-                  $scope.source_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
-                  var source_history = $scope.get_source_history();
-                  console.log(source_history);
-                  for (var i = 0; i < source_history.length; i++) {
-                    $scope.source_addresses.push(source_history[i]);
+                  if ( $scope.sourceModel.name != response.data.name ) {
+                    return;
                   }
-                  for (var i = 0; i < response.data.length; i++) {
-                    var result = response.data[i];
+                  $scope.prePopulateSourceAddresses();
+                  var source_history = $scope.get_source_history();
+                  for (var i = 0; i < response.data.addresses.length; i++) {
+                    var result = response.data.addresses[i];
                     var matches = 0;
                     for (var j = 0; j < source_history.length; j++) {
                       if (source_history[j].name == result.name) {
@@ -144,22 +151,28 @@
                       $scope.source_addresses.push({ name: result.name, latitude: result.latitude, longitude: result.longitude });
                     }
                   }
-                  console.log($scope.source_addresses);
                 },
                 function errorCallback(response) { });
   };
 
   $scope.dest_addresses = [];
+  $scope.prePopulateDestAddresses = function() {
+    $scope.dest_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
+    var dest_history = $scope.get_dest_history();
+    for (var i = 0; i < dest_history.length; i++) {
+      $scope.dest_addresses.push(dest_history[i]);
+    }
+  }
   $scope.getDestAddresses = function() {
+    $scope.prePopulateDestAddresses();
     $http({ method: 'GET', url: 'https://earls.qhigh.com:3001/?get_json_addresses["' + $scope.destModel.name +'"]'}
          ).then(function successCallback(response) {
-                  $scope.dest_addresses = [{name:'Current Location', latitude:$scope.location.latitude, longitude:$scope.location.longitude}];
-                  var dest_history = $scope.get_dest_history();
-                  for (var i = 0; i < dest_history.length; i++) {
-                    $scope.dest_addresses.push(dest_history[i]);
+                  if ( $scope.destModel.name != response.data.name ) {
+                    return;
                   }
-                  for (var i = 0; i < response.data.length; i++) {
-                    var result = response.data[i];
+                  var dest_history = $scope.get_dest_history();
+                  for (var i = 0; i < response.data.addresses.length; i++) {
+                    var result = response.data.addresses[i];
                     var matches = 0;
                     for (var j = 0; j < dest_history.length; j++) {
                       if (dest_history[j].name == result.name) {

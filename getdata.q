@@ -95,7 +95,7 @@ genmail:{[start;end]
 
 get_json_routes:{[start;end] .j.j get_routes[start;end]}
 get_json_places:{[] .j.j ([]name:key .data.places)}
-get_json_addresses:{.j.j googleAddressLocation[x]}
+get_json_addresses:{.j.j `name`addresses!(x;flip googleAddressLocation[x])}
 \d .log
 info:{-1@"INFO ",string[.z.i]," ",string[.z.Z]," :::: ",x;}
 \d .
