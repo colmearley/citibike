@@ -6,25 +6,26 @@
 \l cache.q
 
 generalUrl:"https://gbfs.citibikenyc.com/gbfs/gbfs.json"
-angelUrls:([name:`bikeangelsleaderboard`bikeangelspoints] url:("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://bikeangels-api.citibikenyc.com/bikeangels/v1/scores"))
+angelUrls:([name:`bikeangelsleaderboard`bikeangelspoints] url:("https://bikeangels-api.citibikenyc.com/bikeangels/v1/leaderboard";"https://layer.bicyclesharing.net/map/v1/nyc/stations"))
 getGeneralUrls:{select last url by `$name from .utils.getJsonUrl[generalUrl][`data][`en;`feeds]}
 getGeneralUrlsC:.cache.init[`getGeneralUrls;24t;`name]
 urls:{(getGeneralUrlsC[],angelUrls)[x;`url]}
 
 getsysteminfo:{.utils.getJsonUrl[`system_information]`data}
 norm:{((union/)cols each x)#/:x}
+normt:{[x] ut:{$[98h~x;(`symbol$())!();x$""]}each {max[(x;y)]}/[()!();type each'x]; key[ut]#/:{[ut;x0] x0,cols[x0] _ ut}[ut]each x}
 getsystemalerts:{update "I"$alert_id, `$Type, "I"$station_ids, .utils.posixqtime last_updated from `alert_id`Type xcol .utils.getJsonUrl[urls[`system_alerts]][`data;`alerts]}
 getStationInfo:{update "I"$station_id,`$short_name,`$rental_methods from norm .utils.getJsonUrl[urls`station_information][`data;`stations]}
 getStationInfoC:.cache.init[`getStationInfo;24t;`station_id]
-getStationStatus:{update "I"$station_id,.utils.posixqtime last_reported from .utils.getJsonUrl[urls`station_status][`data;`stations]}
+getStationStatus:{update "I"$station_id,.utils.posixqtime last_reported from norm .utils.getJsonUrl[urls`station_status][`data;`stations]}
 getStationStatusC:.cache.init[`getStationStatus;00:01t;`station_id]
 getStationInfoStatusPoints:{select from (update points_en:points_map[points] from update 0^points from `station_id xasc (uj/)`station_id xkey/:(getStationInfoC[];getStationStatusC[];getBikeAngelsStationPointsC[])) where not null lat,not null lon}
 getRegions:{update "I"$region_id from .utils.getJsonUrl[urls`system_regions][`data;`regions]}
 
 getBikeAngelsLeaderboard:{update `$user from .utils.getJsonUrl[urls`bikeangelsleaderboard]`leaderboard}
-getBikeAngelsStationPoints:{update "I"$string station_id,`int$points from flip `station_id`points!(key;value)@\:.utils.getJsonUrl[urls`bikeangelspoints][`stations]}
+getBikeAngelsStationPoints:{select "I"$station_id,name,num_bikes_available:0f^bikes_available,num_docks_available:0f^docks_available,points:{?[x=`take;neg y;y]}[`$bike_angels_action;0f^`float$bike_angels_points],0f^ebikes_available,ebikes from normt .utils.getJsonUrl[urls`bikeangelspoints][`features;;`properties]}
 getBikeAngelsStationPointsC:.cache.init[`getBikeAngelsStationPoints;00:01t;`station_id]
-points_map:0N -2 -1 0 1 2i!`none`take2`take1`none`return1`return2
+points_map:0N -3 -2 -1 0 1 2 3f!`none`take3`take2`take1`none`return1`return2`return3
 
 getgoogleurl:{[lat0;lon0;lat1;lon1] "https://maps.googleapis.com/maps/api/directions/json?origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&mode=walking&units=miles&key=",getenv[`googleapikey]}
 getgoogleuiurl:{[lat0;lon0;lat1;lon1] "https://www.google.com/maps/dir/?api=1&origin=",string[lat0],",",string[lon0],"&destination=",string[lat1],",",string[lon1],"&travelmode=walking"}
@@ -50,7 +51,7 @@ get_routes:{[start_name;end_name]
   station_info:getStationInfoStatusPoints[];
   map:`station_id xkey select station_id,name,lat,lon,num_bikes_available,num_docks_available,points from station_info;
   "add start and end as synthetic stations with no points";
-  map,:flip `station_id`name`lat`lon`num_bikes_available`num_docks_available`points!(9998 9999i;("start";"end");start[0],end[0];start[1],end[1];1 0f;0 1f;1 -1);
+  map,:flip `station_id`name`lat`lon`num_bikes_available`num_docks_available`points!(9998 9999i;("start";"end");start[0],end[0];start[1],end[1];1 0f;0 1f;1 -1f);
   map:update start_dist:.math.hav[start 0;start 1]. (lat;lon),end_dist:.math.hav[end 0;end 1] . (lat;lon) from map;
   stmap:`st0`st1 xkey select st0,st1,distance:.math.hav[lat0;lon0;lat1;lon1],points:?[points0>0;0;?[points1<0;0;abs[points0]+abs[points1]]] from exec ([]st0:station_id;lat0:lat;lon0:lon;points0:points) cross ([]st1:station_id;lat1:lat;lon1:lon;points1:points) from map;
   
@@ -65,8 +66,10 @@ get_routes:{[start_name;end_name]
               end_route:getgoogleuiurl[;;end 0;end 1]'[lat2;lon2],
               end_name:{[name;points] name," (",string[points],")"}'[station2;points2],
               station2,
-              start_distance:googledistance[start 0;start 1;lat1;lon1],
-              end_distance:googledistance[lat2;lon2;end 0;end 1],
+              / start_distance:googledistance[start 0;start 1;lat1;lon1],
+              start_distance:start_dis,
+              / end_distance:googledistance[lat2;lon2;end 0;end 1],
+              end_distance:end_dis,
               route:getgoogleuiurltotal[start;end]'[lat1;lon1;lat2;lon2] from tbl2;
   `points xdesc update total_distance:start_distance+end_distance from tbl2
  }
